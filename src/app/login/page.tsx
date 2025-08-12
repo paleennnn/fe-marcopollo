@@ -1,3 +1,4 @@
+
 import { AuthPage } from "@components/auth-page";
 import { authProviderServer } from "@providers/auth-provider/auth-provider.server";
 import { redirect } from "next/navigation";
@@ -6,7 +7,7 @@ export default async function Login() {
   const data = await getData();
 
   if (data.authenticated) {
-    redirect(data?.redirectTo || "/");
+    redirect(data?.redirectTo || "/dashboard");
   }
 
   return <AuthPage type="login" />;

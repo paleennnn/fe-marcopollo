@@ -2,90 +2,148 @@
 
 import type { AuthProvider } from "@refinedev/core";
 import Cookies from "js-cookie";
+import { SignJWT, jwtVerify } from "jose";
+import { dataProviders } from "../data-provider";
+import { accessControlProvider } from "../access-control-provider";
 
-const mockUsers = [
-  {
-    name: "John Doe",
-    email: "johndoe@mail.com",
-    roles: ["admin"],
-    avatar: "https://i.pravatar.cc/150?img=1",
-  },
-  {
-    name: "Jane Doe",
-    email: "janedoe@mail.com",
-    roles: ["editor"],
-    avatar: "https://i.pravatar.cc/150?img=1",
-  },
-];
+const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET);
 
 export const authProviderClient: AuthProvider = {
-  login: async ({ email, username, password, remember }) => {
-    // Suppose we actually send a request to the back end here.
-    const user = mockUsers[0];
-
-    if (user) {
-      Cookies.set("auth", JSON.stringify(user), {
-        expires: 30, // 30 days
-        path: "/",
+  // LOGIN
+  login: async ({ username, password }) => {
+    try {
+      const response = await fetch(dataProviders.getApiUrl() + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
+
+      if (!response.ok) throw new Error("Login failed");
+
+      const userData = await response.json();
+      const actualToken = userData.token.token;
+
+      // Enkripsi token
+      const encryptedToken = await new SignJWT({ token: actualToken })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1d")
+        .sign(secret);
+
+      // Simpan token di cookie
+      Cookies.set("auth", encryptedToken, {
+        expires: 30,
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
+
+      // Simpan user tanpa token di localStorage
+      const userDataWithoutToken = { ...userData };
+      delete userDataWithoutToken.token;
+      localStorage.setItem("user", JSON.stringify(userDataWithoutToken));
+
+      return { success: true, redirectTo: "/dashboard" };
+    } catch {
       return {
-        success: true,
-        redirectTo: "/",
+        success: false,
+        error: { name: "LoginError", message: "Invalid username or password" },
       };
     }
-
-    return {
-      success: false,
-      error: {
-        name: "LoginError",
-        message: "Invalid username or password",
-      },
-    };
   },
+
+  // REGISTER
+  register: async ({
+    fullname,
+    email,
+    phone,
+    address,
+    username,
+    password,
+    role,
+  }) => {
+    try {
+      const response = await fetch(dataProviders.getApiUrl() + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullname,
+          email,
+          phone,
+          address,
+          username,
+          password,
+          role: role || "customer",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Register failed");
+
+      return { success: true, redirectTo: "/login" };
+    } catch {
+      return {
+        success: false,
+        error: { name: "RegisterError", message: "Failed to register account" },
+      };
+    }
+  },
+
+  // LOGOUT
   logout: async () => {
     Cookies.remove("auth", { path: "/" });
-    return {
-      success: true,
-      redirectTo: "/login",
-    };
+    localStorage.removeItem("user");
+    return { success: true, redirectTo: "/login" };
   },
+
+  // CHECK AUTH
   check: async () => {
     const auth = Cookies.get("auth");
     if (auth) {
-      return {
-        authenticated: true,
-      };
+      try {
+        await jwtVerify(auth, secret);
+        return { authenticated: true };
+      } catch {
+        return { authenticated: false, logout: true, redirectTo: "/login" };
+      }
     }
-
-    return {
-      authenticated: false,
-      logout: true,
-      redirectTo: "/login",
-    };
+    return { authenticated: false, logout: true, redirectTo: "/login" };
   },
+
+  // GET PERMISSIONS
   getPermissions: async () => {
-    const auth = Cookies.get("auth");
-    if (auth) {
-      const parsedUser = JSON.parse(auth);
-      return parsedUser.roles;
+    const user = localStorage.getItem("user");
+    if (user) {
+      const parsedUser = JSON.parse(user);
+      return parsedUser.role;
     }
     return null;
   },
-  getIdentity: async () => {
-    const auth = Cookies.get("auth");
-    if (auth) {
-      const parsedUser = JSON.parse(auth);
-      return parsedUser;
-    }
-    return null;
-  },
-  onError: async (error) => {
-    if (error.response?.status === 401) {
-      return {
-        logout: true,
-      };
-    }
 
+  // GET IDENTITY
+  getIdentity: async () => {
+    const auth = localStorage.getItem("user");
+    if (auth) {
+      try {
+        const user = JSON.parse(auth);
+        return {
+          id: user.id,
+          username: user.username,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+        };
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+
+  // ERROR HANDLING
+  onError: async (error) => {
+    if (error.response?.status === 401) return { logout: true };
     return { error };
   },
 };
+
+export { accessControlProvider };

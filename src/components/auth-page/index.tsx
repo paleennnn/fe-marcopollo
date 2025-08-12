@@ -1,14 +1,24 @@
 "use client";
-import { AuthPage as AuthPageBase } from "@refinedev/antd";
+
+import {
+  LoginPage,
+  RegisterPage,
+  ForgotPasswordPage,
+  UpdatePasswordPage,
+} from "@components/pages/auth/components";
 import type { AuthPageProps } from "@refinedev/core";
 
 export const AuthPage = (props: AuthPageProps) => {
-  return (
-    <AuthPageBase
-      {...props}
-      formProps={{
-        initialValues: { email: "demo@refine.dev", password: "demodemo" },
-      }}
-    />
-  );
+  const { type } = props;
+
+  switch (type) {
+    case "register":
+      return <RegisterPage {...props} />;
+    case "forgotPassword":
+      return <ForgotPasswordPage {...props} />;
+    case "updatePassword":
+      return <UpdatePasswordPage {...props} />;
+    default:
+      return <LoginPage {...props} />;
+  }
 };

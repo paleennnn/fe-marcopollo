@@ -1,7 +1,7 @@
 "use client";
 
-import dataProviderSimpleRest from "@refinedev/simple-rest";
+import { dataProvider } from "@rest-data-provider";
 
-const API_URL = "https://api.fake-rest.refine.dev";
+const API_URL = process.env.NEXT_PUBLIC_BE_URL as string;
 
-export const dataProvider = dataProviderSimpleRest(API_URL);
+export const dataProviders = dataProvider(API_URL);

@@ -1,0 +1,188 @@
+@import "tailwindcss" important;
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@utility bg-primary {
+    background-color: #2c595a;
+}
+
+@utility bg-secondary {
+    background-color: #f5f5f5;
+}
+
+
+ :where(.css-dev-only-do-not-override-odgtvf).ant-menu-dark.ant-menu-inline .ant-menu-sub.ant-menu-inline,
+ :where(.css-dev-only-do-not-override-odgtvf).ant-menu-dark>.ant-menu.ant-menu-inline .ant-menu-sub.ant-menu-inline {
+     background: rgba(44, 89, 90, 1) !important;
+ }
+ :where(.css-odgtvf).ant-menu-dark.ant-menu-inline .ant-menu-sub.ant-menu-inline,
+ :where(.css-odgtvf).ant-menu-dark>.ant-menu.ant-menu-inline .ant-menu-sub.ant-menu-inline {
+     background: rgba(44, 89, 90, 1) !important;
+ }
+/* Override Ant Design menu item styles */
+.ant-menu-item a {
+    color: white !important;
+}
+
+.ant-menu-item-selected a {
+    color: white !important;
+}
+
+.ant-menu-submenu-title {
+    color: white !important;
+}
+
+.ant-menu-item .anticon {
+    color: white !important;
+}
+
+.ant-menu-submenu .anticon {
+    color: white !important;
+}
+:where(.css-dev-only-do-not-override-1yacf91).ant-menu-dark .ant-menu-item-selected {
+    background-color: #3f7f80 !important;
+}
+
+/* Add to your global CSS */
+.ant-drawer .ant-layout-sider {
+    width: 250px !important;
+    flex: 0 0 250px !important; 
+     max-width: 250px !important;
+            min-width: 200px !important;
+    background-color: rgba(44, 89, 90, 1) !important;
+}
+
+.ant-drawer-content-wrapper {
+    box-shadow: none !important;
+}
+
+.ant-drawer-content {
+    background-color: rgba(44, 89, 90, 1) !important;
+}
+
+@media (max-width: 768px) {
+
+    .ant-menu-item,
+    .ant-menu-submenu-title {
+        color: white !important;
+    }
+
+    .ant-menu-item a {
+        color: white !important;
+    }
+
+    .ant-menu-submenu-arrow {
+        color: white !important;
+    }
+}
+
+/* Tambahkan CSS ini ke file styles.css Anda atau dalam styled-components */
+
+.regulation-list-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.regulation-list-card .ant-card-head {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+}
+
+.table-row-light {
+    background-color: #ffffff;
+}
+
+.table-row-dark {
+    background-color: #fafafa;
+}
+
+/* Hover effect untuk baris tabel */
+.ant-table-tbody>tr:hover>td {
+    background-color: #e6f7ff !important;
+}
+
+/* Style untuk pagination */
+.ant-pagination-item {
+    border-radius: 6px;
+}
+
+.ant-pagination-item-active {
+    background-color: #1890ff;
+    border-color: #1890ff;
+}
+
+.ant-pagination-item-active a {
+    color: white;
+}
+
+/* Style untuk tombol action */
+.ant-btn-text:hover {
+    background-color: #f0f5ff;
+    color: #1890ff;
+}
+
+
+.swiper-pagination-bullet {
+    background: #e5e7eb !important;
+    opacity: 1 !important;
+    border-radius: 0.5rem !important;
+    width: 3.5rem !important;
+    height: 0.125rem !important;
+}
+
+.swiper-pagination-bullet-active {
+    background: #111827 !important;
+}
+
+@keyframes borderRun {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.animated-border {
+    position: relative;
+    background: white;
+    border-radius: 1.5rem;
+    border: 2px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.animated-border::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg,
+            transparent 0deg,
+            transparent 315deg,
+            #06b6d4 315deg,
+            #3b82f6 330deg,
+            #8b5cf6 345deg,
+            #ec4899 360deg,
+            transparent 15deg,
+            transparent 360deg);
+    animation: borderRun 3s linear infinite;
+    z-index: 1;
+}
+
+.animated-border::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: white;
+    border-radius: calc(1.5rem - 3px);
+    z-index: 2;
+}
+
+.animated-border-content {
+    position: relative;
+    z-index: 3;
+    padding: 1.5rem;
+}
