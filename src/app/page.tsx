@@ -93,7 +93,7 @@ export default function IndexPage() {
   };
 
   const handleWhatsAppClick = () => {
-    window.open("https://wa.me/+6282365265904", "_blank");
+    window.open("https://wa.me/6281805793869", "_blank");
   };
 
   // Don't render until mounted to prevent hydration mismatch
@@ -119,7 +119,7 @@ export default function IndexPage() {
                       alt="Logo"
                       style={{ height: "36px", width: "auto" }}
                     />
-                    <span>SI - PEKA</span>
+                    <span>MARCOPOLLO</span>
                   </a>
                   <div className="flex lg:hidden">
                     <button
@@ -149,9 +149,16 @@ export default function IndexPage() {
                   } lg:w-fit`}
                 >
                   <div className="w-full space-y-2 gap-2 pt-6 pb-4 lg:pb-0 border-t border-gray-200 items-center flex flex-col lg:flex-row lg:space-y-0 lg:w-fit lg:border-l lg:border-t-0 lg:pt-0 lg:pl-2">
+                    <Link to="/register">
+                      <Button type="primary" className="w-full lg:w-auto">
+                        Daftar
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="w-full space-y-2 gap-2 pt-6 pb-4 lg:pb-0 border-t border-gray-200 items-center flex flex-col lg:flex-row lg:space-y-0 lg:w-fit lg:border-l lg:border-t-0 lg:pt-0 lg:pl-2">
                     <Link to="/login">
                       <Button type="primary" className="w-full lg:w-auto">
-                        Login
+                        Masuk
                       </Button>
                     </Link>
                   </div>
@@ -165,8 +172,8 @@ export default function IndexPage() {
             <div className="relative pt-24 lg:pt-28">
               <div className="mx-auto px-6 max-w-7xl md:px-12">
                 <div className="text-center sm:mx-auto sm:w-10/12 lg:mr-auto lg:mt-0 lg:w-4/5">
-                  <h1 className="mt-8 text-wrap text-4xl md:text-5xl font-semibold text-gray-950 xl:text-5xl xl:[line-height:1.125]">
-                    Sistem Informasi Pencatatan Bimbingan Konseling
+                  <h1 className="mt-8 text-wrap text-4xl md:text-5xl font-semibold text-gray-950 xl:text-3xl xl:[line-height:1.125]">
+                    Sistem Informasi Manajemen Bisnis Pribadi (Budidaya Ikan Lele, Peternakan Kambing dan Jual Beli Material Bangunan) di Marcopollo Group
                   </h1>
                   <p className="text-wrap mx-auto mt-8 max-w-2xl text-lg text-gray-700">
                     Platform terintegrasi untuk manajemen disiplin, pelanggaran,
@@ -460,17 +467,17 @@ export default function IndexPage() {
           <div className="max-w-6xl mx-auto space-y-16 px-6 py-16 text-gray-600 2xl:px-0">
             <div className="flex items-center justify-between rounded-md bg-gray-100 px-6 py-3">
               <span className="text-gray-600">
-                © 2025 SMKN 1 Jenangan Ponorogo
+                © 2025 Marcopollo Group
               </span>
               <span className="text-sm text-gray-600">
                 Created by{" "}
                 <a
-                  href="http://juned-setiawan.vercel.app"
+                  href="http://github.com/paleennnn"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-amber-400 hover:text-primary-600"
                 >
-                  Jnd
+                  Valentino
                 </a>
               </span>
             </div>

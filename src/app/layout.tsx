@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon-32x32.png",
   },
-  authors: [{ name: "Bio", url: "https://juned-setiawan.vercel.app" }],
+  authors: [{ name: "Bio", url: "https://github.com/paleennnn" }],
 };
 
 export default function RootLayout({
