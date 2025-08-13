@@ -9,7 +9,7 @@ import {
   // LoginFormTypes,
   LoginPageProps,
 } from "@refinedev/core";
-// import LogoImage from "@/public/logo/logo-smkn-jenangan.png";
+import LogoImage from "@/public/logo/logo-marcopollo.png";
 // import { Title } from "@refinedev/antd";
 import { Card, Input, Button, Form, theme, Alert } from "antd";
 import Image from "next/image";
@@ -35,6 +35,7 @@ type LoginProps = LoginPageProps<DivPropsType, DivPropsType, FormPropsType>;
 
 export const LoginPage: React.FC<LoginProps> = ({
   providers,
+  registerLink,
   renderContent,
   title = undefined,
   mutationVariables,
@@ -198,10 +199,24 @@ export const LoginPage: React.FC<LoginProps> = ({
           </Form.Item>
         </Form>
 
+        <div className="text-sm text-gray-600 mt-1">
+          {registerLink ?? (
+            <span>
+              {translate(
+                "pages.login.buttons.haveAccount",
+                "Belum punya akun?"
+              )}{" "}
+              <ActiveLink to="/register">
+                {translate("pages.register.signup", "Daftar")}
+              </ActiveLink>
+            </span>
+          )}
+        </div>
+
         <div className="mt-12 text-center">
           <p className="text-xs text-gray-500">
             &copy;2025 Marcopollo Group. Jika terdapat masalah silahkan
-            hubungi <a href="https://wa.me/6282365265904">Admin</a>
+            hubungi <a href="https://wa.me/6281805793869">Admin</a>
           </p>
         </div>
       </Card>
