@@ -13,12 +13,24 @@ export const accessControlProvider: AccessControlProvider = {
 
     const user = JSON.parse(userStr) as User;
 
+    if (resource === "dashboard" || resource === "profile") {
+      return { can: true };
+    }
+
     // Admin bisa semua
     if (isAdmin(user)) {
       return { can: true };
     }
 
     if (resource === "materials") {
+    if (action === "create" || action === "edit" || action === "delete") {
+        return { can: true }; // untuk test saja
+    }
+    return { can: true };
+}
+
+
+    if (resource === "kandangs") {
       if (action === "create" || action === "edit" || action === "delete") {
         return { can: isAdmin(user) };
       }

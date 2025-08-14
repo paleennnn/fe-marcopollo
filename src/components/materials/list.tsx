@@ -30,7 +30,7 @@ export const MaterialList = () => {
         }
         headerButtons={({ defaultButtons }) => <>{defaultButtons}</>}
       >
-        <Table {...tableProps} rowKey="id_material" bordered>
+        <Table {...tableProps} rowKey="id" bordered>
           {/* Nomor urut */}
           <Table.Column
             title="No."
@@ -43,7 +43,7 @@ export const MaterialList = () => {
 
           {/* Nama Material */}
           <Table.Column
-            dataIndex="nama_material"
+            dataIndex="namaMaterial"
             title="Nama Material"
             sorter
             render={(value: string) => <Text strong>{value}</Text>}
@@ -51,13 +51,11 @@ export const MaterialList = () => {
 
           {/* Harga Satuan */}
           <Table.Column
-            dataIndex="harga_satuan"
+            dataIndex="hargaSatuan"
             title="Harga Satuan"
             sorter
             render={(value: number) => (
-              <Text>
-                Rp {value?.toLocaleString("id-ID")}
-              </Text>
+              <Text>Rp {value?.toLocaleString("id-ID")}</Text>
             )}
           />
 
@@ -87,9 +85,9 @@ export const MaterialList = () => {
             fixed="right"
             render={(_, record: BaseRecord) => (
               <Space>
-                <ShowButton hideText size="small" recordItemId={record.id_material} />
-                <EditButton hideText size="small" recordItemId={record.id_material} />
-                <DeleteButton hideText size="small" recordItemId={record.id_material} />
+                <ShowButton hideText size="small" recordItemId={record.id} />
+                <EditButton hideText size="small" recordItemId={record.id} title="Edit material" />
+                <DeleteButton hideText size="small" recordItemId={record.id} title="Hapus material" />
               </Space>
             )}
           />

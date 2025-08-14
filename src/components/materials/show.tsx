@@ -3,7 +3,15 @@
 import React from "react";
 import { useShow, useApiUrl, CanAccess } from "@refinedev/core";
 import { Show, DateField } from "@refinedev/antd";
-import { Typography, Card, Row, Col, Descriptions, Image, Skeleton } from "antd";
+import {
+  Typography,
+  Card,
+  Row,
+  Col,
+  Descriptions,
+  Image,
+  Skeleton,
+} from "antd";
 import { AppstoreOutlined, CalendarOutlined } from "@ant-design/icons";
 import UnauthorizedPage from "@app/unauthorized";
 
@@ -69,7 +77,11 @@ export const MaterialShow = () => {
   }
 
   return (
-    <CanAccess resource="materials" action="show" fallback={<UnauthorizedPage />}>
+    <CanAccess
+      resource="materials"
+      action="show"
+      fallback={<UnauthorizedPage />}
+    >
       <Show
         title={
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -86,24 +98,35 @@ export const MaterialShow = () => {
             <Card title="Informasi Material" bordered={false}>
               <Descriptions bordered column={1}>
                 <Descriptions.Item label="Nama Material">
-                  {record?.nama_material}
+                  {record?.nama_material ?? "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Harga Satuan">
-                  Rp {record?.harga_satuan?.toLocaleString("id-ID")}
+                  Rp{" "}
+                  {record?.harga_satuan
+                    ? `Rp ${record.harga_satuan.toLocaleString("id-ID")}`
+                    : "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Tanggal Dibuat">
                   <CalendarOutlined />{" "}
-                  <DateField
-                    value={record?.created_at}
-                    format="DD MMM YYYY HH:mm"
-                  />
+                  {record?.created_at ? (
+                    <DateField
+                      value={record.created_at}
+                      format="DD MMM YYYY HH:mm"
+                    />
+                  ) : (
+                    "-"
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Terakhir Diperbarui">
                   <CalendarOutlined />{" "}
-                  <DateField
-                    value={record?.updated_at}
-                    format="DD MMM YYYY HH:mm"
-                  />
+                  {record?.updated_at ? (
+                    <DateField
+                      value={record.updated_at}
+                      format="DD MMM YYYY HH:mm"
+                    />
+                  ) : (
+                    "-"
+                  )}
                 </Descriptions.Item>
               </Descriptions>
             </Card>

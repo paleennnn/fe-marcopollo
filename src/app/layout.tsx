@@ -121,6 +121,18 @@ export default function RootLayout({
                           icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
                         },
                       },
+                      {
+                        name: "kandangs",
+                        list: "/kandangs",
+                        create: "/kandangs/create",
+                        edit: "/kandangs/edit/:id",
+                        show: "/kandangs/show/:id",
+                        meta: {
+                          canDelete: true,
+                          label: "Kandang",
+                          icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
+                        },
+                      },
                     ]}
                     options={{
                       syncWithLocation: true,
