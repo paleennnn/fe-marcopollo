@@ -1,5 +1,5 @@
-import { MaterialEdit } from "@components/materials";
+import { KandangEdit } from "@components/kandangs";
 
-export default function MaterialEditPage() {
-    return <MaterialEdit />;
+export default function KandangEditPage() {
+    return <KandangEdit />;
 };

@@ -101,7 +101,7 @@ export const MaterialShow = () => {
                   {record?.nama_material ?? "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Harga Satuan">
-                  Rp{" "}
+                  {" "}
                   {record?.harga_satuan
                     ? `Rp ${record.harga_satuan.toLocaleString("id-ID")}`
                     : "-"}

@@ -1,5 +1,5 @@
-import { MaterialCreate } from "@components/materials";
+import { KandangCreate } from "@components/kandangs";
 
-export default function MaterialCreatePage() {
-    return <MaterialCreate />;
+export default function KandangCreatePage() {
+    return <KandangCreate />;
 };

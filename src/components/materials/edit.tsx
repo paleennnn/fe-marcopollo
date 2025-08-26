@@ -12,6 +12,7 @@ export const MaterialEdit = () => {
   const apiUrl = useApiUrl();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   const { formProps, saveButtonProps, query } = useForm({
     action: "edit",
@@ -48,6 +49,11 @@ export const MaterialEdit = () => {
 
   const handleFileChange = ({ fileList }: any) => {
     setFileList(fileList);
+    if (fileList.length === 0) {
+      setRemoveImage(true); // kalau kosong berarti user hapus gambar
+    } else {
+      setRemoveImage(false);
+    }
   };
 
   const onFinish = async (values: any) => {
@@ -56,30 +62,13 @@ export const MaterialEdit = () => {
     formData.append("nama_material", values.nama_material);
     formData.append("harga_satuan", values.harga_satuan);
 
-    // Jika ada file baru
-    if (fileList.length > 0) {
-      if (fileList[0].originFileObj) {
-        formData.append("image", fileList[0].originFileObj);
-      } else if (currentImageUrl) {
-        // re-upload file lama jika tidak ada perubahan
-        try {
-          const response = await fetch(currentImageUrl);
-          const blob = await response.blob();
-          const file = new File([blob], "current-image.jpg", {
-            type: blob.type || "image/jpeg",
-          });
-          formData.append("image", file);
-        } catch (error) {
-          notification.error({
-            message: "Error",
-            description: "Gagal memproses file gambar saat ini",
-          });
-          return;
-        }
-      }
+    if (removeImage) {
+      formData.append("remove_image", "true"); // kirim sinyal hapus gambar
+    } else if (fileList.length > 0 && fileList[0].originFileObj) {
+      // upload gambar baru
+      formData.append("image", fileList[0].originFileObj);
     }
 
-    // Method override untuk PUT
     formData.append("_method", "PUT");
 
     return formProps.onFinish?.(formData);
@@ -117,7 +106,9 @@ export const MaterialEdit = () => {
               maxCount={1}
               beforeUpload={() => false}
               onChange={handleFileChange}
-              accept=".jpg,.jpeg,.png"
+              onRemove={() => setRemoveImage(true)}
+              fileList={fileList}
+              accept=".jpg,.jpeg,.png,.webp"
             >
               <Button icon={<UploadOutlined />}>
                 {fileList.length > 0 ? "Ganti Gambar" : "Upload Gambar"}

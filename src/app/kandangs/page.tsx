@@ -1,5 +1,5 @@
-import { MaterialList } from "@components/materials";
+import { KandangList } from "@components/kandangs";
 
-export default function MaterialListPage() {
-    return <MaterialList />;
+export default function KandangListPage() {
+    return <KandangList />;
 };
