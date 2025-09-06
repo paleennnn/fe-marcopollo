@@ -1,5 +1,5 @@
-import { MaterialList } from "@components/materials";
+import { KambingList } from "@components/kambings";
 
-export default function MaterialListPage() {
-    return <MaterialList />;
-};
+export default function KambingListPage() {
+  return <KambingList />;
+}

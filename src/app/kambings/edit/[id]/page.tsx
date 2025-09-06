@@ -1,5 +1,5 @@
-import { MaterialEdit } from "@components/materials";
+import { KambingEdit } from "@components/kambings";
 
-export default function MaterialEditPage() {
-    return <MaterialEdit />;
-};
+export default function KambingEditPage() {
+  return <KambingEdit />;
+}

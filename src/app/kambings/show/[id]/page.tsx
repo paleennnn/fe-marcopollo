@@ -1,5 +1,5 @@
-import { MaterialShow } from "@components/materials";
+import { KambingShow } from "@components/kambings";
 
-export default function MaterialShowPage() {
-    return <MaterialShow />;
-};
+export default function KambingShowPage() {
+  return <KambingShow />;
+}

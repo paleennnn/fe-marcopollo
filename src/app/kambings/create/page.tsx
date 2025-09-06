@@ -1,5 +1,5 @@
-import { MaterialCreate } from "@components/materials";
+import { KambingCreate } from "@components/kambings";
 
-export default function MaterialCreatePage() {
-    return <MaterialCreate />;
-};
+export default function KambingCreatePage() {
+  return <KambingCreate />;
+}

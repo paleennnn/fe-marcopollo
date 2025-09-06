@@ -11,7 +11,8 @@ export const accessControlProvider: AccessControlProvider = {
       return { can: false };
     }
 
-    const user = JSON.parse(userStr) as User;
+    const parsed = JSON.parse(userStr);
+    const user = parsed.user ? parsed.user : parsed; // ✅ FIX disini
 
     if (resource === "dashboard" || resource === "profile") {
       return { can: true };
@@ -23,42 +24,25 @@ export const accessControlProvider: AccessControlProvider = {
     }
 
     if (resource === "materials") {
-    if (action === "create" || action === "edit" || action === "delete") {
-        return { can: true }; // untuk test saja
+      if (action === "create" || action === "edit" || action === "delete") {
+        return { can: isAdmin(user) };
+      }
+      return { can: true };
     }
-    return { can: true };
-}
-
 
     if (resource === "kandangs") {
       if (action === "create" || action === "edit" || action === "delete") {
         return { can: isAdmin(user) };
       }
-      return {
-        can: true, // Everyone can view regulations
-      };
+      return { can: true };
     }
 
-    // // Customer
-    // if (isCustomer(user)) {
-    //   // Boleh lihat list & detail materials dan kambing
-    //   if (["materials", "kambing"].includes(resource)) {
-    //     if (["list", "show"].includes(action)) {
-    //       return { can: true };
-    //     }
-    //     // Boleh create order untuk pembelian
-    //     if (["create"].includes(action)) {
-    //       return { can: true };
-    //     }
-    //   }
-
-    //   // Boleh akses orders (transaksi)
-    //   if (resource === "orders" && ["list", "show", "create"].includes(action)) {
-    //     return { can: true };
-    //   }
-
-    //   return { can: false };
-    // }
+    if (resource === "kambings") {
+      if (action === "create" || action === "edit" || action === "delete") {
+        return { can: isAdmin(user) };
+      }
+      return { can: true };
+    }
 
     return { can: false };
   },
