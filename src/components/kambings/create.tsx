@@ -1,19 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import { Create, useForm } from "@refinedev/antd";
 import { Form, Input, Upload, Button, Divider, Alert, DatePicker } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/lib";
 import { CanAccess } from "@refinedev/core";
 import UnauthorizedPage from "@app/unauthorized";
+import { useSearchParams } from "next/navigation";
+import dayjs from "dayjs";
 
 export const KambingCreate: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const searchParams = useSearchParams();
+  const kandangId = searchParams.get("kandangId");
 
   const { formProps, saveButtonProps } = useForm({
     action: "create",
-    resource: "kambings", // harus sama dengan nama resource refine
+    resource: kandangId ? `kandangs/${kandangId}/kambings` : undefined,
   });
 
   // handle upload file
@@ -25,7 +29,14 @@ export const KambingCreate: React.FC = () => {
   const onFinish = async (values: any) => {
     const formData = new FormData();
 
-    formData.append("tanggal_ditambahkan", values.tanggal_ditambahkan);
+    // format tanggal ke "YYYY-MM-DD" agar cocok dengan vine.date()
+    if (values.tanggal_ditambahkan) {
+      formData.append(
+        "tanggal_ditambahkan",
+        dayjs(values.tanggal_ditambahkan).format("YYYY-MM-DD")
+      );
+    }
+
     formData.append("umur", values.umur);
     formData.append("keterangan", values.keterangan || "");
     formData.append("catatan", values.catatan || "");
@@ -85,7 +96,7 @@ export const KambingCreate: React.FC = () => {
             name="tanggal_ditambahkan"
             rules={[{ required: true, message: "Tanggal wajib diisi" }]}
           >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
 
           {/* Umur */}
