@@ -58,8 +58,9 @@ export const KandangShow: React.FC = () => {
         }
       >
         <Table {...tableProps} rowKey="id" bordered>
-          <Table.Column title="No." render={(_, __, index) => index + 1} />
+          <Table.Column align="center" title="No." render={(_, __, index) => index + 1} />
           <Table.Column
+            align="center"
             dataIndex="image"
             title="Foto"
             render={(value: string) =>
@@ -76,12 +77,13 @@ export const KandangShow: React.FC = () => {
               )
             }
           />
-          <Table.Column dataIndex="tanggal_ditambahkan" title="Tanggal Ditambahkan" />
-          <Table.Column dataIndex="umur" title="Umur (bulan)" />
-          <Table.Column dataIndex="keterangan" title="Keterangan" />
-          <Table.Column dataIndex="catatan" title="Catatan" />
+          <Table.Column align="center" dataIndex="tanggalDitambahkan" title="Tanggal Ditambahkan" />
+          <Table.Column align="center" dataIndex="umur" title="Umur (bulan)" />
+          <Table.Column align="center" dataIndex="keterangan" title="Keterangan" />
+          <Table.Column align="center" dataIndex="catatan" title="Catatan" />
 
           <Table.Column
+            align="center"
             title="Aksi"
             render={(_, record: any) => (
               <Space>

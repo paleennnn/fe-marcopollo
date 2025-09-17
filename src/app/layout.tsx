@@ -27,6 +27,7 @@ import {
   ReadFilled,
   TrophyFilled,
   UserOutlined,
+  CodeSandboxSquareFilled,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 
@@ -118,7 +119,7 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Material Bangunan",
-                          icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
+                          icon: <CodeSandboxSquareFilled style={{ fontSize: "1.2em" }} />,
                         },
                       },
                       {
@@ -130,6 +131,18 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Kandang",
+                          icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
+                        },
+                      },
+                      {
+                        name: "leles",
+                        list: "/leles",
+                        create: "/leles/create",
+                        edit: "/leles/edit/:id",
+                        show: "/leles/show/:id",
+                        meta: {
+                          canDelete: true,
+                          label: "Lele",
                           icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
                         },
                       },

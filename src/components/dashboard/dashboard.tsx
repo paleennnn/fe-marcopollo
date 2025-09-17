@@ -1828,7 +1828,7 @@ export const Dashboard = () => {
       {renderFilters()}
       <Row gutter={[0, 24]}>
         <Col span={24}>
-          <Title level={2}>Sistem Informasi Pencatatan BK</Title>
+          <Title level={2}>Sistem Informasi Manajemen Marcopollo</Title>
         </Col>
 
         <Col span={24}>
