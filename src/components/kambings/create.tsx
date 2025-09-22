@@ -37,9 +37,11 @@ export const KambingCreate: React.FC = () => {
       );
     }
 
+    formData.append("nama_kambing", values.nama_kambing);
     formData.append("umur", values.umur);
     formData.append("keterangan", values.keterangan || "");
     formData.append("catatan", values.catatan || "");
+    formData.append("harga", values.harga);
 
     if (fileList.length > 0 && fileList[0].originFileObj) {
       formData.append("image", fileList[0].originFileObj);
@@ -69,6 +71,14 @@ export const KambingCreate: React.FC = () => {
         <Divider />
 
         <Form {...formProps} onFinish={onFinish} layout="vertical">
+          <Form.Item
+            name="nama_kambing"
+            label="Nama Kambing"
+            rules={[{ required: true, message: "Nama kambing wajib diisi" }]}
+          >
+            <Input placeholder="Masukkan nama kambing" />
+          </Form.Item>
+
           {/* Upload foto */}
           <Form.Item
             name="image"
@@ -120,6 +130,15 @@ export const KambingCreate: React.FC = () => {
           {/* Catatan */}
           <Form.Item label="Catatan" name="catatan">
             <Input.TextArea rows={4} placeholder="Masukkan catatan tambahan (opsional)" />
+          </Form.Item>
+
+          {/* Harga */}
+          <Form.Item
+            label="Harga"
+            name="harga"
+            rules={[{ required: true, message: "Harga wajib diisi" }]}
+          >
+            <Input type="number" placeholder="Masukkan harga kambing" />
           </Form.Item>
         </Form>
       </Create>

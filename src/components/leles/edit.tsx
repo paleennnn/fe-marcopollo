@@ -2,16 +2,17 @@
 
 import React, { useEffect } from "react";
 import { Edit, useForm } from "@refinedev/antd";
-import { Form, Input, Select } from "antd";
+import { Form, Input, DatePicker } from "antd";
 import { CanAccess } from "@refinedev/core";
 import UnauthorizedPage from "@app/unauthorized";
+import dayjs from "dayjs";
 
 export const LeleEdit = () => {
   const { formProps, saveButtonProps, query } = useForm({
     action: "edit",
     resource: "leles",
     meta: {
-      fields: ["id_lele", "nomor_kolam", "jumlah_lele", "umur", "status"],
+      fields: ["id_lele", "nomor_kolam", "jumlah_lele", "tanggal_mulai"],
     },
   });
 
@@ -22,16 +23,22 @@ export const LeleEdit = () => {
       formProps.form.setFieldsValue({
         nomor_kolam: data.nomor_kolam,
         jumlah_lele: data.jumlah_lele,
-        umur: data.umur,
-        status: data.status,
+        tanggal_mulai: data.tanggal_mulai ? dayjs(data.tanggal_mulai) : null,
       });
     }
   }, [data, formProps.form]);
 
+  const onFinish = async (values: any) => {
+    return formProps.onFinish?.({
+      ...values,
+      tanggal_mulai: dayjs(values.tanggal_mulai).format("YYYY-MM-DD"),
+    });
+  };
+
   return (
     <CanAccess resource="leles" action="edit" fallback={<UnauthorizedPage />}>
       <Edit saveButtonProps={saveButtonProps}>
-        <Form {...formProps} layout="vertical">
+        <Form {...formProps} onFinish={onFinish} layout="vertical">
           <Form.Item
             label="Nomor Kolam"
             name="nomor_kolam"
@@ -49,24 +56,11 @@ export const LeleEdit = () => {
           </Form.Item>
 
           <Form.Item
-            label="Umur"
-            name="umur"
-            rules={[{ required: true, message: "Umur wajib diisi" }]}
+            label="Tanggal Mulai"
+            name="tanggal_mulai"
+            rules={[{ required: true, message: "Tanggal mulai wajib diisi" }]}
           >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="Status"
-            name="status"
-            rules={[{ required: true, message: "Status wajib dipilih" }]}
-          >
-            <Select
-              options={[
-                { label: "Siap Panen", value: "Siap Panen" },
-                { label: "Belum Siap Panen", value: "Belum Siap Panen" },
-              ]}
-            />
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
         </Form>
       </Edit>

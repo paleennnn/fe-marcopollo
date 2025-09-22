@@ -61,7 +61,10 @@ export const LeleShow = () => {
                 <Descriptions.Item label="Jumlah Lele">
                   {record?.jumlah_lele ?? "-"}
                 </Descriptions.Item>
-                <Descriptions.Item label="Umur">
+                <Descriptions.Item label="Tanggal Mulai">
+                  {record?.tanggal_mulai ?? "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Umur (bulan)">
                   {record?.umur ?? "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Status">

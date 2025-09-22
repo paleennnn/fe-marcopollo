@@ -39,7 +39,8 @@ export const LeleList = () => {
           />
           <Table.Column dataIndex="nomorKolam" title="Nomor Kolam" sorter />
           <Table.Column dataIndex="jumlahLele" title="Jumlah Lele" sorter />
-          <Table.Column dataIndex="umur" title="Umur" sorter />
+          <Table.Column dataIndex="tanggalMulai" title="Tanggal Mulai" sorter />
+          <Table.Column dataIndex="umur" title="Umur (bulan)" sorter />
           <Table.Column dataIndex="status" title="Status" sorter />
 
           <Table.Column

@@ -80,6 +80,10 @@ export default function RootLayout({
                       {
                         name: "homepage",
                         list: "/",
+                        meta: {
+                          label: "Home",
+                          hide: true,
+                        },
                       },
                       {
                         name: "profile",
@@ -87,7 +91,7 @@ export default function RootLayout({
                         meta: {
                           label: "My Profile",
 
-                          hide: true,
+                          hide: false,
                         },
                       },
                       {

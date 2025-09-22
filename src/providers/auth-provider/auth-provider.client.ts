@@ -120,24 +120,29 @@ export const authProviderClient: AuthProvider = {
   },
 
   // GET IDENTITY
-  getIdentity: async () => {
-    const auth = localStorage.getItem("user");
-    if (auth) {
-      try {
-        const user = JSON.parse(auth);
-        return {
-          id: user.id,
-          username: user.username,
-          fullname: user.fullname,
-          email: user.email,
-          role: user.role,
-        };
-      } catch {
-        return null;
-      }
+  // src\providers\auth-provider\auth-provider client ts
+getIdentity: async () => {
+  const auth = localStorage.getItem("user");
+  if (auth) {
+    try {
+      const user = JSON.parse(auth);
+      return {
+        id: user.id,
+        username: user.username,
+        fullname: user.fullname,
+        email: user.email,
+        phone: user.phone,        
+        address: user.address,    
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    } catch {
+      return null;
     }
-    return null;
-  },
+  }
+  return null;
+},
 
   // ERROR HANDLING
   onError: async (error) => {

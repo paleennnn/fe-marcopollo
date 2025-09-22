@@ -57,6 +57,10 @@ export const KambingEdit: React.FC = () => {
         <Form.Item label="Catatan" name="catatan">
           <Input.TextArea rows={3} />
         </Form.Item>
+
+        <Form.Item label="Harga Kambing" name="harga">
+          <Input type="number" />
+        </Form.Item>
       </Form>
     </Edit>
   );

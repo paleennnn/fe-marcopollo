@@ -2,15 +2,23 @@
 
 import React from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { Form, Input, Select, Divider, Alert } from "antd";
+import { Form, Input, DatePicker, Divider, Alert } from "antd";
 import { CanAccess } from "@refinedev/core";
 import UnauthorizedPage from "@app/unauthorized";
+import dayjs from "dayjs";
 
 export const LeleCreate = () => {
   const { formProps, saveButtonProps } = useForm({
     action: "create",
     resource: "leles",
   });
+
+  const onFinish = async (values: any) => {
+    return formProps.onFinish?.({
+      ...values,
+      tanggal_mulai: dayjs(values.tanggal_mulai).format("YYYY-MM-DD"),
+    });
+  };
 
   return (
     <CanAccess resource="leles" action="create" fallback={<UnauthorizedPage />}>
@@ -23,7 +31,7 @@ export const LeleCreate = () => {
         />
         <Divider />
 
-        <Form {...formProps} layout="vertical">
+        <Form {...formProps} onFinish={onFinish} layout="vertical">
           <Form.Item
             label="Nomor Kolam"
             name="nomor_kolam"
@@ -41,25 +49,11 @@ export const LeleCreate = () => {
           </Form.Item>
 
           <Form.Item
-            label="Umur (bulan)"
-            name="umur"
-            rules={[{ required: true, message: "Umur wajib diisi" }]}
+            label="Tanggal Mulai"
+            name="tanggal_mulai"
+            rules={[{ required: true, message: "Tanggal mulai wajib diisi" }]}
           >
-            <Input placeholder="Masukkan umur lele (contoh: 3 bulan)" />
-          </Form.Item>
-
-          <Form.Item
-            label="Status"
-            name="status"
-            rules={[{ required: true, message: "Status wajib dipilih" }]}
-          >
-            <Select
-              placeholder="Pilih status"
-              options={[
-                { label: "Siap Panen", value: "Siap Panen" },
-                { label: "Belum Siap Panen", value: "Belum Siap Panen" },
-              ]}
-            />
+            <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
         </Form>
       </Create>
