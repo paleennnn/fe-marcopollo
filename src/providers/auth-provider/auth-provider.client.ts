@@ -92,7 +92,7 @@ export const authProviderClient: AuthProvider = {
   logout: async () => {
     Cookies.remove("auth", { path: "/" });
     localStorage.removeItem("user");
-    return { success: true, redirectTo: "/login" };
+    return { success: true, redirectTo: "/" };
   },
 
   // CHECK AUTH

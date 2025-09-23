@@ -1,46 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useList, Link } from "@refinedev/core";
 import { Card, Button } from "antd";
 
-interface Kambing {
-  id: number;
-  nama_kambing: string;
-  harga: number;
-  image?: string;
-}
-
-interface Material {
-  id: number;
-  nama_material: string;
-  harga_satuan: number;
-  image?: string;
-}
-
 export default function LandingPage() {
-  const [kambings, setKambings] = useState<Kambing[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  useEffect(() => {
-  fetch("http://localhost:3333/api/public/kambings")
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Kambing data:", data); // DEBUG: cek data yang diterima
-      setKambings(Array.isArray(data) ? data : data.data || []);
-    })
-    .catch(() => setKambings([]));
+  // Ambil data Kambing dari resource refine
+  const { data: kambingsData, isLoading: kambingsLoading } = useList({
+    resource: "public/kambings",
+    pagination: { pageSize: 4 }, // tampilkan 4 unggulan
+  });
 
-  fetch("http://localhost:3333/api/public/materials")
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Material data:", data); // DEBUG: cek data yang diterima
-      setMaterials(Array.isArray(data) ? data : data.data || []);
-    })
-    .catch(() => setMaterials([]));
-}, []);
+  // Ambil data Material dari resource refine
+  const { data: materialsData, isLoading: materialsLoading } = useList({
+    resource: "public/materials",
+    pagination: { pageSize: 4 }, // tampilkan 4 unggulan
+  });
+
+  const kambings = kambingsData?.data ?? [];
+  const materials = materialsData?.data ?? [];
 
   const handleCardClick = (id: number, type: "kambing" | "material") => {
     if (!token) {
@@ -51,79 +31,182 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="p-6">
-      {/* Navbar */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">🛒 Marcopollo Group</h1>
-        <div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* 🔹 Navbar */}
+      <nav className="flex justify-between items-center bg-white shadow p-4 sticky top-0 z-50">
+        <h1 className="text-2xl font-bold text-[#2C595A]">🛒Marcopollo</h1>
+
+         {/* Menu desktop */}
+        <div className="hidden md:flex items-center gap-8">
+          <a href="/" className="text-gray-700 hover:text-green-700 font-medium">
+            Home
+          </a>
+          <a
+            href="/materials"
+            className="text-gray-700 hover:text-green-700 font-medium"
+          >
+            Produk
+          </a>
+          <a
+            href="/about"
+            className="text-gray-700 hover:text-green-700 font-medium"
+          >
+            Tentang Kami
+          </a>
+          <a
+            href="/contact"
+            className="text-gray-700 hover:text-green-700 font-medium"
+          >
+            Kontak
+          </a>
+        </div>
+
+        <div className="flex gap-2">
           {!token ? (
             <>
-              <Link href="/login">
-                <Button type="primary" className="mr-2">
-                  Login
-                </Button>
+              <Link to="/login">
+                <Button type="primary">Login</Button>
               </Link>
-              <Link href="/register">
+              <Link to="/register">
                 <Button>Register</Button>
               </Link>
             </>
           ) : (
-            <Link href="/profile">
+            <Link to="/profile">
               <Button type="primary">Profil Saya</Button>
             </Link>
           )}
         </div>
-      </div>
 
-      {/* Produk Kambing */}
-      <h2 className="text-xl font-semibold mb-4">🐐 Kambing</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {kambings.map((item) => (
-          <Card
-            key={item.id}
-            hoverable
-            cover={
-              <img
-                alt={item.nama_kambing}
-                src={item.image || "/placeholder.png"}
-                className="h-40 object-cover"
-              />
-            }
-            onClick={() => handleCardClick(item.id, "kambing")}
-          >
-            <Card.Meta
-              title={item.nama_kambing}
-              description={`Rp ${item.harga.toLocaleString("id-ID")}`}
-            />
-          </Card>
-        ))}
-      </div>
+      </nav>
 
-      {/* Produk Material */}
-      <h2 className="text-xl font-semibold mb-4">🧱 Material</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {materials.map((item) => (
-          <Card
-            key={item.id}
-            hoverable
-            cover={
-              <img
-                alt={item.nama_material}
-                src={item.image || "/placeholder.png"}
-                className="h-40 object-cover"
-              />
-            }
-            onClick={() => handleCardClick(item.id, "material")}
+      {/* 🔹 Hero Section */}
+      <section className="bg-[#2C595A] text-white text-center pt-28 pb-20 px-6">
+        <h1 className="text-3xl md:text-5xl font-bold mb-4">
+          Marketplace Kambing & Material Berkualitas
+        </h1>
+        <p className="text-lg md:text-xl mb-6">
+          Temukan kambing terbaik dan material bangunan terpercaya hanya di
+          Marcopollo Group.
+        </p>
+        <div className="flex justify-center gap-4">
+          <Button
+            size="large"
+            type="primary"
+            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black"
+            href="/kambing"
           >
-            <Card.Meta
-              title={item.nama_material}
-              description={`Rp ${Number(item.harga_satuan || 0).toLocaleString(
-                "id-ID"
-              )}`}
-            />
-          </Card>
-        ))}
-      </div>
+            Lihat Kambing
+          </Button>
+          <Button
+            size="large"
+            className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black"
+            href="/material"
+          >
+            Lihat Material
+          </Button>
+        </div>
+      </section>
+
+      {/* 🔹 Kategori */}
+      <section className="py-12 px-6 text-center bg-white">
+        <h2 className="text-2xl font-semibold mb-8">Kategori Produk</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="p-6 bg-green-100 rounded-xl shadow hover:shadow-lg cursor-pointer">
+            <span className="text-4xl">🐐</span>
+            <h3 className="mt-2 font-bold">Kambing</h3>
+          </div>
+          <div className="p-6 bg-orange-100 rounded-xl shadow hover:shadow-lg cursor-pointer">
+            <span className="text-4xl">🧱</span>
+            <h3 className="mt-2 font-bold">Material</h3>
+          </div>
+        </div>
+      </section>
+
+      {/* 🔹 Produk Unggulan - Kambing */}
+      <section id="kambing" className="py-12 px-6 bg-gray-50">
+        <h2 className="text-2xl font-semibold mb-6 text-center">🐐 Kambing Unggulan</h2>
+        {kambingsLoading ? (
+          <p className="text-center">Loading...</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {kambings.map((item: any) => (
+              <Card
+                key={item.id}
+                hoverable
+                cover={
+                  <img
+                    alt={item.nama_kambing}
+                    src={item.image || "/placeholder.png"}
+                    className="h-40 object-cover"
+                  />
+                }
+                onClick={() => handleCardClick(item.id, "kambing")}
+              >
+                <Card.Meta
+                  title={item.nama_kambing}
+                  description={`Rp ${Number(item.harga || 0).toLocaleString(
+                    "id-ID"
+                  )}`}
+                />
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 🔹 Produk Unggulan - Material */}
+      <section id="material" className="py-12 px-6 bg-white">
+        <h2 className="text-2xl font-semibold mb-6 text-center">🧱 Material Unggulan</h2>
+        {materialsLoading ? (
+          <p className="text-center">Loading...</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {materials.map((item: any) => (
+              <Card
+                key={item.id}
+                hoverable
+                cover={
+                  <img
+                    alt={item.nama_material}
+                    src={item.image || "/placeholder.png"}
+                    className="h-40 object-cover"
+                  />
+                }
+                onClick={() => handleCardClick(item.id, "material")}
+              >
+                <Card.Meta
+                  title={item.nama_material}
+                  description={`Rp ${Number(
+                    item.harga_satuan || 0
+                  ).toLocaleString("id-ID")}`}
+                />
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 🔹 CTA Section */}
+      <section className="bg-[#2C595A] text-white text-center pt-28 pb-20 px-6">
+        <h2 className="text-3xl font-bold mb-4">Siap Belanja Sekarang?</h2>
+        <p className="mb-6">
+          Dapatkan kambing pilihan dan material bangunan terbaik hanya di satu tempat.
+        </p>
+        <Button
+          size="large"
+          type="primary"
+          className="bg-white text-gray-900 font-semibold"
+          href="/register"
+        >
+          Mulai Sekarang
+        </Button>
+      </section>
+
+      {/* 🔹 Footer */}
+      <footer className="bg-gray-900 text-gray-300 p-6 text-center text-sm">
+        © {new Date().getFullYear()} Marcopollo Group. All rights reserved.
+      </footer>
     </div>
   );
 }
