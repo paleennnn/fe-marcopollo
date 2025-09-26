@@ -1,35 +1,48 @@
 "use client";
 
-import React, { use, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { Form, Input, Upload, Button, Divider, Alert, DatePicker } from "antd";
+import { Form, Input, Upload, Button, Divider, Alert, DatePicker, Select } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import type { UploadFile } from "antd/lib";
-import { CanAccess } from "@refinedev/core";
+import { CanAccess, useApiUrl } from "@refinedev/core";
 import UnauthorizedPage from "@app/unauthorized";
-import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 
 export const KambingCreate: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const searchParams = useSearchParams();
-  const kandangId = searchParams.get("kandangId");
+  const [kandangs, setKandangs] = useState<{ id: number; no_kandang: string }[]>([]);
+  const apiUrl = useApiUrl();
 
   const { formProps, saveButtonProps } = useForm({
     action: "create",
-    resource: kandangId ? `kandangs/${kandangId}/kambings` : undefined,
+    resource: "kambings", // sekarang CRUD kambing langsung, tidak nested kandang
   });
 
-  // handle upload file
+  // 🔹 Fetch daftar kandang dinamis
+  useEffect(() => {
+  const token = localStorage.getItem("token"); // ✅ sekarang ada
+  fetch(`${apiUrl}/kandangs`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("DATA KANDANGS:", data);
+      setKandangs(Array.isArray(data) ? data : data.data || []);
+    })
+    .catch(() => setKandangs([]));
+}, [apiUrl]); 
+
   const handleFileChange = ({ fileList }: { fileList: UploadFile[] }) => {
     setFileList(fileList);
   };
 
-  // custom submit untuk kirim FormData
+  // 🔹 custom submit pakai FormData
   const onFinish = async (values: any) => {
     const formData = new FormData();
 
-    // format tanggal ke "YYYY-MM-DD" agar cocok dengan vine.date()
     if (values.tanggal_ditambahkan) {
       formData.append(
         "tanggal_ditambahkan",
@@ -42,6 +55,7 @@ export const KambingCreate: React.FC = () => {
     formData.append("keterangan", values.keterangan || "");
     formData.append("catatan", values.catatan || "");
     formData.append("harga", values.harga);
+    formData.append("kandang_id", values.kandang_id);
 
     if (fileList.length > 0 && fileList[0].originFileObj) {
       formData.append("image", fileList[0].originFileObj);
@@ -53,7 +67,6 @@ export const KambingCreate: React.FC = () => {
   return (
     <CanAccess resource="kambings" action="create" fallback={<UnauthorizedPage />}>
       <Create saveButtonProps={saveButtonProps}>
-        {/* Alert warning */}
         <Alert
           message={<strong>Perhatian</strong>}
           description={
@@ -71,12 +84,28 @@ export const KambingCreate: React.FC = () => {
         <Divider />
 
         <Form {...formProps} onFinish={onFinish} layout="vertical">
+          {/* Nama kambing */}
           <Form.Item
             name="nama_kambing"
             label="Nama Kambing"
             rules={[{ required: true, message: "Nama kambing wajib diisi" }]}
           >
             <Input placeholder="Masukkan nama kambing" />
+          </Form.Item>
+
+          {/* Dropdown kandang */}
+          <Form.Item
+            name="kandang_id"
+            label="Pilih Kandang"
+            rules={[{ required: true, message: "Kandang wajib dipilih" }]}
+          >
+            <Select placeholder="Pilih kandang">
+              {kandangs.map((k) => (
+                <Select.Option key={k.id} value={k.id}>
+                  Kandang {k.no_kandang}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Upload foto */}
@@ -91,7 +120,7 @@ export const KambingCreate: React.FC = () => {
               maxCount={1}
               beforeUpload={() => false}
               onChange={handleFileChange}
-              accept=".jpg,.jpeg,.png"
+              accept=".jpg,.jpeg,.png,.webp"
             >
               <Button icon={<UploadOutlined />}>Upload Foto</Button>
             </Upload>
@@ -129,7 +158,7 @@ export const KambingCreate: React.FC = () => {
 
           {/* Catatan */}
           <Form.Item label="Catatan" name="catatan">
-            <Input.TextArea rows={4} placeholder="Masukkan catatan tambahan (opsional)" />
+            <Input.TextArea rows={3} placeholder="Masukkan catatan tambahan (opsional)" />
           </Form.Item>
 
           {/* Harga */}

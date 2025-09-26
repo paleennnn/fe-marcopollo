@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import { SignJWT, jwtVerify } from "jose";
 import { dataProviders } from "../data-provider";
 import { accessControlProvider } from "../access-control-provider";
+import { act } from "react";
 
 const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET);
 
@@ -37,6 +38,8 @@ export const authProviderClient: AuthProvider = {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
       });
+
+      localStorage.setItem("token", actualToken);
 
       // Simpan user tanpa token di localStorage
       const userDataWithoutToken = { ...userData };

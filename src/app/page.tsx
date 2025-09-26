@@ -1,11 +1,23 @@
 "use client";
 
+import InstallButton from "@components/installButton";
 import { useList, Link } from "@refinedev/core";
-import { Card, Button } from "antd";
+import { Card, Button, FloatButton } from "antd";
+import { WhatsAppOutlined } from "@ant-design/icons";
+import Cookies from "js-cookie";
 
 export default function LandingPage() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // Ambil data user dari localStorage
+  const user =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "null")
+      : null;
+
+  // Atau bisa juga cek cookie auth
+  const authCookie = typeof window !== "undefined" ? Cookies.get("auth") : null;
 
   // Ambil data Kambing dari resource refine
   const { data: kambingsData, isLoading: kambingsLoading } = useList({
@@ -29,16 +41,25 @@ export default function LandingPage() {
       window.location.href = `/${type}/${id}`; // redirect ke detail
     }
   };
+  
+  const handleWhatsAppClick = () => {
+    window.open("https://wa.me/+6281805793869", "_blank");
+  };
+  
+  const isAuthenticated = !!(user && authCookie);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <main className="min-h-screen flex flex-col bg-gray-50">
       {/* 🔹 Navbar */}
       <nav className="flex justify-between items-center bg-white shadow p-4 sticky top-0 z-50">
         <h1 className="text-2xl font-bold text-[#2C595A]">🛒Marcopollo</h1>
 
-         {/* Menu desktop */}
+        {/* Menu desktop */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="/" className="text-gray-700 hover:text-green-700 font-medium">
+          <a
+            href="/"
+            className="text-gray-700 hover:text-green-700 font-medium"
+          >
             Home
           </a>
           <a
@@ -62,22 +83,13 @@ export default function LandingPage() {
         </div>
 
         <div className="flex gap-2">
-          {!token ? (
-            <>
-              <Link to="/login">
-                <Button type="primary">Login</Button>
-              </Link>
-              <Link to="/register">
-                <Button>Register</Button>
-              </Link>
-            </>
-          ) : (
-            <Link to="/profile">
-              <Button type="primary">Profil Saya</Button>
-            </Link>
-          )}
+          <Link to="/login">
+            <Button type="primary">Login</Button>
+          </Link>
+          <Link to="/register">
+            <Button>Register</Button>
+          </Link>
         </div>
-
       </nav>
 
       {/* 🔹 Hero Section */}
@@ -125,7 +137,9 @@ export default function LandingPage() {
 
       {/* 🔹 Produk Unggulan - Kambing */}
       <section id="kambing" className="py-12 px-6 bg-gray-50">
-        <h2 className="text-2xl font-semibold mb-6 text-center">🐐 Kambing Unggulan</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-center">
+          🐐 Kambing Unggulan
+        </h2>
         {kambingsLoading ? (
           <p className="text-center">Loading...</p>
         ) : (
@@ -157,7 +171,9 @@ export default function LandingPage() {
 
       {/* 🔹 Produk Unggulan - Material */}
       <section id="material" className="py-12 px-6 bg-white">
-        <h2 className="text-2xl font-semibold mb-6 text-center">🧱 Material Unggulan</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-center">
+          🧱 Material Unggulan
+        </h2>
         {materialsLoading ? (
           <p className="text-center">Loading...</p>
         ) : (
@@ -191,7 +207,8 @@ export default function LandingPage() {
       <section className="bg-[#2C595A] text-white text-center pt-28 pb-20 px-6">
         <h2 className="text-3xl font-bold mb-4">Siap Belanja Sekarang?</h2>
         <p className="mb-6">
-          Dapatkan kambing pilihan dan material bangunan terbaik hanya di satu tempat.
+          Dapatkan kambing pilihan dan material bangunan terbaik hanya di satu
+          tempat.
         </p>
         <Button
           size="large"
@@ -207,6 +224,28 @@ export default function LandingPage() {
       <footer className="bg-gray-900 text-gray-300 p-6 text-center text-sm">
         © {new Date().getFullYear()} Marcopollo Group. All rights reserved.
       </footer>
-    </div>
+
+      {/* Floating WhatsApp Button - Kanan Bawah */}
+      <div
+        className="fixed bottom-6 right-6 z-50 cursor-pointer"
+        onClick={handleWhatsAppClick}
+      >
+        {/* Desktop version - with text */}
+        <div className="hidden md:flex items-center bg-[#25D366] hover:bg-[#20b954] text-white px-4 py-3 rounded-full shadow-lg transition-all duration-300 hover:shadow-xl">
+          <WhatsAppOutlined className="text-xl mr-2" />
+          <span className="text-sm font-medium whitespace-nowrap">
+            Pertanyaan atau Masalah? Bisa klik disini
+          </span>
+        </div>
+
+        {/* Mobile version - icon only */}
+        <div className="flex md:hidden items-center justify-center bg-[#25D366] hover:bg-[#20b954] text-white w-14 h-14 rounded-full shadow-lg transition-all duration-300 hover:shadow-xl">
+          <WhatsAppOutlined className="text-xl" />
+        </div>
+      </div>
+
+      {/* Install Button Component - Kiri Bawah */}
+      <InstallButton />
+    </main>
   );
 }

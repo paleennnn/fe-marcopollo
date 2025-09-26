@@ -19,6 +19,12 @@ import {
   PhoneOutlined,
   TrophyFilled,
   PhoneFilled,
+  UserOutlined,
+  ThunderboltFilled,
+  DockerOutlined,
+  CodeSandboxSquareFilled,
+  LogoutOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 
 export const MobileBottomNavbar: React.FC = () => {
@@ -43,23 +49,22 @@ export const MobileBottomNavbar: React.FC = () => {
   // More menu content
   const moreMenuContent = (
     <div className="flex flex-col gap-3 py-2">
-      {/* Panggilan Siswa */}
-      <CanAccess resource="student-calls" action="list">
+      {/* Users */}
+      <CanAccess resource="users" action="list">
         <Link
-          to="/student-calls"
+          to="/users"
           className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
         >
-          <PhoneFilled
+          <UsergroupAddOutlined
             style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
             className="mr-2"
           />
-          <span style={{ color: "rgba(44, 89, 90, 1)" }}>Panggilan Siswa</span>
+          <span style={{ color: "rgba(44, 89, 90, 1)" }}>Pengguna</span>
         </Link>
       </CanAccess>
 
-      {/* Logout */}
-
       {/* Rekap Menu Items */}
+      {/*
       <CanAccess resource="violation-summary/class" action="list">
         <Link
           to="/violation-summary/classes"
@@ -89,61 +94,59 @@ export const MobileBottomNavbar: React.FC = () => {
           </span>
         </Link>
       </CanAccess>
+      */}
 
-      {/* Prestasi Ketertiban */}
-      <CanAccess resource="awards" action="list">
-        <Link
-          to="/awards"
-          className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
-          onClick={handleMenuItemClick}
-        >
-          <TrophyFilled
-            style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
-            className="mr-2"
-          />
-          <span style={{ color: "rgba(44, 89, 90, 1)" }}>
-            Prestasi Ketertiban
-          </span>
-        </Link>
-      </CanAccess>
+      {/* Logout */}
+      <div
+        className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer"
+        onClick={() => {
+          mutateLogout();
+        }}
+      >
+        <LogoutOutlined
+          style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
+          className="mr-2"
+        />
+        <span style={{ color: "rgba(44, 89, 90, 1)" }}>Logout</span>
+      </div>
     </div>
   );
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 h-16">
       <div className="flex justify-around items-center h-full px-1">
-        {/* Peraturan */}
-        <CanAccess resource="regulations" action="list">
+        {/* Material */}
+        <CanAccess resource="materials" action="list">
           <Link
-            to="/regulations"
+            to="/materials"
             className="flex flex-col items-center justify-center w-1/5"
           >
-            <ControlFilled
+            <CodeSandboxSquareFilled
               style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
             />
             <span
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Peraturan
+              Material
             </span>
           </Link>
         </CanAccess>
 
-        {/* Pelanggaran */}
-        <CanAccess resource="violations" action="list">
+        {/* Kambing */}
+        <CanAccess resource="kambings" action="list">
           <Link
-            to="/violations"
+            to="/kambings"
             className="flex flex-col items-center justify-center w-1/5"
           >
-            <ReadFilled
+            <ThunderboltFilled
               style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
             />
             <span
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Pelanggaran
+              Kambing
             </span>
           </Link>
         </CanAccess>
@@ -152,7 +155,7 @@ export const MobileBottomNavbar: React.FC = () => {
 
         {/* Dashboard (Center) */}
         <Link
-          to="/"
+          to="/dashboard"
           className="flex flex-col items-center justify-center w-1/5"
         >
           <div className="flex items-center justify-center bg-primary rounded-full w-12 h-12 -mt-5">
@@ -166,38 +169,38 @@ export const MobileBottomNavbar: React.FC = () => {
           </span>
         </Link>
 
-        {/* Bimbingan Konseling */}
-        <CanAccess resource="counselings" action="list">
+        {/* Lele */}
+        <CanAccess resource="lele" action="list">
           <Link
-            to="/counselings"
+            to="/lele"
             className="flex flex-col items-center justify-center w-1/5"
           >
-            <ContactsFilled
+            <DockerOutlined
               style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
             />
             <span
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Konseling
+              Lele
             </span>
           </Link>
         </CanAccess>
 
-        {/* Kunjungan Rumah */}
-        <CanAccess resource="home-visits" action="list">
+        {/* Profile */}
+        <CanAccess resource="profile" action="list">
           <Link
-            to="/home-visits"
+            to="/profile"
             className="flex flex-col items-center justify-center w-1/5"
           >
-            <CalendarFilled
+            <UserOutlined
               style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
             />
             <span
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Kunjungan
+              Profil
             </span>
           </Link>
         </CanAccess>

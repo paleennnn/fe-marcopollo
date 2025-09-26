@@ -28,6 +28,8 @@ import {
   TrophyFilled,
   UserOutlined,
   CodeSandboxSquareFilled,
+  ThunderboltFilled,
+  DockerOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 
@@ -35,7 +37,7 @@ export const metadata: Metadata = {
   title: "Marcopollo Group",
   description: "Marcopollo Group",
   manifest: "/manifest.json",
-  keywords: ["Simbah BK"],
+  keywords: ["Marcopollo"],
   icons: {
     icon: "/favicon-32x32.png",
   },
@@ -139,6 +141,18 @@ export default function RootLayout({
                         },
                       },
                       {
+                        name: "kambings",
+                        list: "/kambings",
+                        create: "/kambings/create",
+                        edit: "/kambings/edit/:id",
+                        show: "/kambings/show/:id",
+                        meta: {
+                          canDelete: true,
+                          label: "Kambing",
+                          icon: <ThunderboltFilled style={{ fontSize: "1.2em" }} />,
+                        },
+                      },
+                      {
                         name: "leles",
                         list: "/leles",
                         create: "/leles/create",
@@ -147,7 +161,7 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Lele",
-                          icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
+                          icon: <DockerOutlined style={{ fontSize: "1.2em" }} />,
                         },
                       },
                     ]}

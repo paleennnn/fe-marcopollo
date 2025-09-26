@@ -1,45 +1,106 @@
 "use client";
 
 import React from "react";
-import { List, useTable, EditButton, DeleteButton } from "@refinedev/antd";
-import { Table, Typography, Space, Image } from "antd";
-import { useApiUrl } from "@refinedev/core";
+import { BaseRecord, CanAccess, useApiUrl } from "@refinedev/core";
+import { useTable, List, EditButton, ShowButton, DeleteButton } from "@refinedev/antd";
+import { Table, Space, Typography, Image } from "antd";
+import { AppstoreOutlined } from "@ant-design/icons";
+import UnauthorizedPage from "@app/unauthorized";
 
-const { Title } = Typography;
+const { Text } = Typography;
 
-export const KambingList: React.FC = () => {
-  const { tableProps } = useTable({ resource: "kambings" });
+export const KambingList = () => {
   const apiUrl = useApiUrl();
 
+  const { tableProps } = useTable({
+    syncWithLocation: true,
+    resource: "kambings",
+  });
+
   return (
-    <List title={<Title level={4}>Daftar Kambing</Title>}>
-      <Table {...tableProps} rowKey="id" bordered>
-        <Table.Column title="No." render={(_, __, index) => index + 1} />
-        <Table.Column
-          dataIndex="image"
-          title="Foto"
-          render={(value: string) =>
-            value ? (
-              <Image src={`${apiUrl}/${value}`} width={60} height={60} />
-            ) : (
-              "-"
-            )
-          }
-        />
-        <Table.Column dataIndex="tanggal_ditambahkan" title="Tanggal Ditambahkan" />
-        <Table.Column dataIndex="umur" title="Umur (bulan)" />
-        <Table.Column dataIndex="keterangan" title="Keterangan" />
-        <Table.Column dataIndex="catatan" title="Catatan" />
-        <Table.Column
-          title="Aksi"
-          render={(_, record: any) => (
-            <Space>
-              <EditButton size="small" recordItemId={record.id} />
-              <DeleteButton size="small" recordItemId={record.id} />
-            </Space>
-          )}
-        />
-      </Table>
-    </List>
+    <CanAccess resource="kambings" action="list" fallback={<UnauthorizedPage />}>
+      <List
+        title={
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <AppstoreOutlined style={{ fontSize: 24, marginRight: 12 }} />
+            <Text strong style={{ fontSize: 20 }}>
+              Manajemen Kambing
+            </Text>
+          </div>
+        }
+        headerButtons={({ defaultButtons }) => <>{defaultButtons}</>}
+      >
+        <Table {...tableProps} rowKey="id" bordered>
+          {/* Nomor urut */}
+          <Table.Column
+            title="No."
+            width={60}
+            render={(_, __, index) => {
+              const { current = 1, pageSize = 10 } = tableProps.pagination || {};
+              return (current - 1) * pageSize + index + 1;
+            }}
+          />
+
+          {/* Nama Kambing */}
+          <Table.Column
+            dataIndex="namaKambing"
+            title="Nama Kambing"
+            sorter
+            render={(value: string) => <Text strong>{value}</Text>}
+          />
+
+          {/* Umur */}
+          <Table.Column
+            dataIndex="umur"
+            title="Umur (bulan)"
+            sorter
+            render={(value: number) => <Text>{value} bln</Text>}
+          />
+
+          {/* Harga */}
+          <Table.Column
+            dataIndex="harga"
+            title="Harga"
+            sorter
+            render={(value: number) => (
+              <Text>Rp {value?.toLocaleString("id-ID")}</Text>
+            )}
+          />
+
+          {/* Gambar */}
+          <Table.Column
+            dataIndex="image"
+            title="Foto"
+            render={(value: string) =>
+              value ? (
+                <Image
+                  src={`${apiUrl}/${value}`}
+                  alt="Kambing"
+                  width={60}
+                  height={60}
+                  style={{ objectFit: "cover", borderRadius: 8 }}
+                />
+              ) : (
+                <Text type="secondary">Tidak ada foto</Text>
+              )
+            }
+          />
+
+          {/* Aksi */}
+          <Table.Column
+            title="Aksi"
+            width={180}
+            fixed="right"
+            render={(_, record: BaseRecord) => (
+              <Space>
+                <ShowButton hideText size="small" recordItemId={record.id} />
+                <EditButton hideText size="small" recordItemId={record.id} title="Edit kambing" />
+                <DeleteButton hideText size="small" recordItemId={record.id} title="Hapus kambing" />
+              </Space>
+            )}
+          />
+        </Table>
+      </List>
+    </CanAccess>
   );
 };
