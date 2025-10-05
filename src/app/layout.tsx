@@ -30,6 +30,8 @@ import {
   CodeSandboxSquareFilled,
   ThunderboltFilled,
   DockerOutlined,
+  ReadOutlined,
+  CheckSquareFilled,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 
@@ -162,6 +164,18 @@ export default function RootLayout({
                           canDelete: true,
                           label: "Lele",
                           icon: <DockerOutlined style={{ fontSize: "1.2em" }} />,
+                        },
+                      },
+                      {
+                        name: "orders",
+                        list: "/orders",
+                        // create: "/orders/create",
+                        // edit: "/orders/edit/:id",
+                        // show: "/orders/show/:id",
+                        meta: {
+                          canDelete: true,
+                          label: "Verifikasi Pembayaran",
+                          icon: <CheckSquareFilled style={{ fontSize: "1.2em" }} />,
                         },
                       },
                     ]}

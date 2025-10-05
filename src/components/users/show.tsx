@@ -36,10 +36,10 @@ export const UserShow = () => {
               <TextField value={record?.role} />
             </Descriptions.Item>
             <Descriptions.Item label="Created At">
-              <DateField value={record?.created_at} format="DD MMM YYYY HH:mm" />
+              <DateField value={record?.createdAt} format="DD MMM YYYY HH:mm" />
             </Descriptions.Item>
             <Descriptions.Item label="Updated At">
-              <DateField value={record?.updated_at} format="DD MMM YYYY HH:mm" />
+              <DateField value={record?.updatedAt} format="DD MMM YYYY HH:mm" />
             </Descriptions.Item>
           </Descriptions>
         </Card>

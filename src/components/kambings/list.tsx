@@ -4,7 +4,7 @@ import React from "react";
 import { BaseRecord, CanAccess, useApiUrl } from "@refinedev/core";
 import { useTable, List, EditButton, ShowButton, DeleteButton } from "@refinedev/antd";
 import { Table, Space, Typography, Image } from "antd";
-import { AppstoreOutlined } from "@ant-design/icons";
+import { ThunderboltFilled } from "@ant-design/icons";
 import UnauthorizedPage from "@app/unauthorized";
 
 const { Text } = Typography;
@@ -22,12 +22,12 @@ export const KambingList = () => {
       <List
         title={
           <div style={{ display: "flex", alignItems: "center" }}>
-            <AppstoreOutlined style={{ fontSize: 24, marginRight: 12 }} />
+            <ThunderboltFilled style={{ fontSize: 24, marginRight: 12 }} />
             <Text strong style={{ fontSize: 20 }}>
               Manajemen Kambing
             </Text>
           </div>
-        }
+        } 
         headerButtons={({ defaultButtons }) => <>{defaultButtons}</>}
       >
         <Table {...tableProps} rowKey="id" bordered>
@@ -54,7 +54,7 @@ export const KambingList = () => {
             dataIndex="umur"
             title="Umur (bulan)"
             sorter
-            render={(value: number) => <Text>{value} bln</Text>}
+            render={(value: number) => <Text>{value} bulan</Text>}
           />
 
           {/* Harga */}
