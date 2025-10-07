@@ -32,6 +32,8 @@ import {
   DockerOutlined,
   ReadOutlined,
   CheckSquareFilled,
+  ShoppingCartOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 
@@ -94,7 +96,6 @@ export default function RootLayout({
                         list: "/profile",
                         meta: {
                           label: "My Profile",
-
                           hide: false,
                         },
                       },
@@ -127,7 +128,11 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Material Bangunan",
-                          icon: <CodeSandboxSquareFilled style={{ fontSize: "1.2em" }} />,
+                          icon: (
+                            <CodeSandboxSquareFilled
+                              style={{ fontSize: "1.2em" }}
+                            />
+                          ),
                         },
                       },
                       {
@@ -151,7 +156,9 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Kambing",
-                          icon: <ThunderboltFilled style={{ fontSize: "1.2em" }} />,
+                          icon: (
+                            <ThunderboltFilled style={{ fontSize: "1.2em" }} />
+                          ),
                         },
                       },
                       {
@@ -163,19 +170,53 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Lele",
-                          icon: <DockerOutlined style={{ fontSize: "1.2em" }} />,
+                          icon: (
+                            <DockerOutlined style={{ fontSize: "1.2em" }} />
+                          ),
                         },
                       },
+                      // 🛒 KERANJANG - Customer Only
+                      {
+                        name: "customer/keranjang",
+                        list: "/keranjang",
+                        meta: {
+                          canDelete: true,
+                          label: "Keranjang Belanja",
+                          icon: (
+                            <ShoppingCartOutlined
+                              style={{ fontSize: "1.2em" }}
+                            />
+                          ),
+                          hide: false,
+                        },
+                      },
+                      // 🧾 CUSTOMER ORDERS
+                      {
+                        name: "customer/orders",
+                        list: "/customer-orders",
+                        show: "/customer-orders/show/:id",
+                        meta: {
+                          canDelete: false,
+                          label: "Pesanan Saya",
+                          icon: (
+                            <FileTextOutlined style={{ fontSize: "1.2em" }} />
+                          ),
+                          hide: false,
+                          identifier: "idOrder", // Sesuaikan dengan field ID dari API
+                        },
+                      },
+                      // ✅ ADMIN ORDERS - Verifikasi
                       {
                         name: "orders",
                         list: "/orders",
-                        // create: "/orders/create",
-                        // edit: "/orders/edit/:id",
-                        // show: "/orders/show/:id",
+                        show: "/orders/show/:id",
+                        edit: "/orders/edit/:id",
                         meta: {
                           canDelete: true,
                           label: "Verifikasi Pembayaran",
-                          icon: <CheckSquareFilled style={{ fontSize: "1.2em" }} />,
+                          icon: (
+                            <CheckSquareFilled style={{ fontSize: "1.2em" }} />
+                          ),
                         },
                       },
                     ]}
@@ -186,7 +227,6 @@ export default function RootLayout({
                       projectId: "PPapVH-nZKuqU-6aYAL4",
                     }}
                   >
-                    {/* <InstallButton /> */}
                     {children}
                     <RefineKbar />
                   </Refine>
