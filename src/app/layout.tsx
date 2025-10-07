@@ -197,7 +197,7 @@ export default function RootLayout({
                         show: "/customer-orders/show/:id",
                         meta: {
                           canDelete: false,
-                          label: "Pesanan Saya",
+                          label: "Riwayat Transaksi",
                           icon: (
                             <FileTextOutlined style={{ fontSize: "1.2em" }} />
                           ),
@@ -213,7 +213,7 @@ export default function RootLayout({
                         edit: "/orders/edit/:id",
                         meta: {
                           canDelete: true,
-                          label: "Verifikasi Pembayaran",
+                          label: "Transaksi Pesanan",
                           icon: (
                             <CheckSquareFilled style={{ fontSize: "1.2em" }} />
                           ),

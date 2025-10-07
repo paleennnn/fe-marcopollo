@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Show } from "@refinedev/antd";
 import { useShow } from "@refinedev/core";
 import {
@@ -30,6 +31,7 @@ export const OrdersShow = () => {
   const apiUrl = useApiUrl();
   const { open } = useNotification();
   const invalidate = useInvalidate();
+  const router = useRouter();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [verifikasiLoading, setVerifikasiLoading] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -109,6 +111,10 @@ export const OrdersShow = () => {
               status === "selesai" ? "disetujui" : "ditolak"
             }`,
           });
+          
+          setTimeout(() => {
+            router.push("/orders");
+          }, 1000);
         },
         onError: (error) => {
           setVerifikasiLoading(false);

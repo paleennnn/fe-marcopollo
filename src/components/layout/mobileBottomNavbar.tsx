@@ -151,8 +151,6 @@ export const MobileBottomNavbar: React.FC = () => {
           </Link>
         </CanAccess>
 
-        {/* Bimbingan Konseling */}
-
         {/* Dashboard (Center) */}
         <Link
           to="/dashboard"

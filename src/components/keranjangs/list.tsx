@@ -248,6 +248,61 @@ export default function KeranjangListPage() {
     );
   };
 
+  const handleDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      open?.({
+        type: "error",
+        message: "Peringatan",
+        description: "Pilih minimal satu item untuk dihapus",
+      });
+      return;
+    }
+
+    Modal.confirm({
+      title: "Konfirmasi Hapus",
+      content: `Anda yakin ingin menghapus ${selectedRowKeys.length} item dari keranjang?`,
+      okText: "Ya, Hapus",
+      cancelText: "Batal",
+      okButtonProps: {
+      danger: true,
+      type: "primary",
+    },
+      onOk: async () => {
+        try {
+          // Hapus satu per satu menggunakan Promise.all
+          await Promise.all(
+            selectedRowKeys.map((id) =>
+              fetch(`${apiUrl}/customer/keranjang/${id}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`, // sesuaikan kalau kamu pakai token lain
+                },
+              })
+            )
+          );
+
+          open?.({
+            type: "success",
+            message: "Berhasil",
+            description: "Item yang dipilih berhasil dihapus dari keranjang",
+          });
+
+          setSelectedRowKeys([]);
+          invalidate({
+            resource: "customer/keranjang",
+            invalidates: ["list"],
+          });
+        } catch (error) {
+          open?.({
+            type: "error",
+            message: "Gagal",
+            description: "Terjadi kesalahan saat menghapus item",
+          });
+        }
+      },
+    });
+  };
+
   return (
     <List>
       {safeTableProps.dataSource.length === 0 ? (
@@ -340,7 +395,24 @@ export default function KeranjangListPage() {
             />
           </Table>
 
-          <div style={{ marginTop: 16, textAlign: "right" }}>
+          <div
+            style={{
+              marginTop: 16,
+              textAlign: "right",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+            }}
+          >
+            <Button
+              danger
+              size="large"
+              onClick={handleDelete}
+              disabled={selectedRowKeys.length === 0}
+            >
+              Hapus ({selectedRowKeys.length} item)
+            </Button>
+
             <Button
               type="primary"
               size="large"
