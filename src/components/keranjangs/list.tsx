@@ -51,6 +51,7 @@ export default function KeranjangListPage() {
             item.tipeProduk === "material"
               ? item.material?.namaMaterial || "-"
               : item.kambing?.namaKambing || "-",
+          product_type: item.tipeProduk,
           quantity: item.jumlah,
           price: item.hargaSatuan,
           image:
@@ -171,8 +172,38 @@ export default function KeranjangListPage() {
             description: "Checkout berhasil, silahkan upload bukti pembayaran",
           });
         },
-        onError: (error) => {
+        onError: (error: any) => {
           setCheckoutLoading(false);
+
+          // ✅ Handle error khusus untuk kambing yang sudah dibooking
+          if (
+            error?.statusCode === 409 ||
+            error?.response?.data?.error === "KAMBING_ALREADY_BOOKED"
+          ) {
+            setIsCheckoutModalOpen(false);
+
+            // Tampilkan modal konfirmasi dengan info lengkap
+            Modal.error({
+              title: "Kambing Tidak Tersedia",
+              content:
+                error?.message ||
+                error?.response?.data?.message ||
+                "Beberapa kambing sudah di-checkout oleh user lain dan telah dihapus dari keranjang Anda.",
+              okText: "Mengerti",
+              onOk: () => {
+                // Reset selection dan refresh data
+                setSelectedRowKeys([]);
+                invalidate({
+                  resource: "customer/keranjang",
+                  invalidates: ["list"],
+                });
+              },
+            });
+
+            return;
+          }
+
+          // Handle error lainnya
           open?.({
             type: "error",
             message: "Gagal",
@@ -264,9 +295,9 @@ export default function KeranjangListPage() {
       okText: "Ya, Hapus",
       cancelText: "Batal",
       okButtonProps: {
-      danger: true,
-      type: "primary",
-    },
+        danger: true,
+        type: "primary",
+      },
       onOk: async () => {
         try {
           // Hapus satu per satu menggunakan Promise.all
@@ -275,7 +306,7 @@ export default function KeranjangListPage() {
               fetch(`${apiUrl}/customer/keranjang/${id}`, {
                 method: "DELETE",
                 headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`, // sesuaikan kalau kamu pakai token lain
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
               })
             )
@@ -359,6 +390,13 @@ export default function KeranjangListPage() {
               }
             />
             <Table.Column dataIndex="product_name" title="Nama Produk" />
+            <Table.Column
+              dataIndex="product_type"
+              title="Tipe"
+              render={(value: string) => (
+                <Text style={{ textTransform: "capitalize" }}>{value}</Text>
+              )}
+            />
             <Table.Column
               title="Harga Satuan"
               render={(_, record: any) => (

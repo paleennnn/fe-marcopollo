@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BaseRecord,
   CanAccess,
   useApiUrl,
   useCustomMutation,
   useGetIdentity,
+  useCustom,
 } from "@refinedev/core";
 import {
   List,
@@ -23,7 +24,6 @@ import {
   Image,
   Button,
   Space,
-  InputNumber,
   Spin,
   Tag,
   Table,
@@ -46,17 +46,43 @@ export const KambingList = () => {
   const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>(
     {}
   );
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [cartKambingIds, setCartKambingIds] = useState<number[]>([]);
 
   const { tableProps } = useTable({
     syncWithLocation: true,
     resource: "kambings",
   });
 
+  // Fetch data keranjang untuk mendapatkan kambing yang sudah ada di keranjang user ini
+  const { data: cartData, refetch: refetchCart } = useCustom({
+    url: `${apiUrl}/customer/keranjang`,
+    method: "get",
+  });
+
+  // Update cartKambingIds setiap kali cartData berubah
+  useEffect(() => {
+    if (cartData?.data?.data) {
+      const apiData = cartData.data.data;
+      const kambingIdsInCart = apiData
+        .filter((item: any) => item.tipeProduk === "kambing")
+        .map((item: any) => item.kambing?.idKambing || item.idProduk);
+
+      setCartKambingIds(kambingIdsInCart);
+    }
+  }, [cartData]);
+
   const { mutate: addToCart } = useCustomMutation();
 
   const handleAddToCart = (kambingId: number) => {
-    const jumlah = quantities[kambingId] || 1;
+    // Cek apakah kambing sudah ada di keranjang user ini
+    if (cartKambingIds.includes(kambingId)) {
+      open?.({
+        type: "error",
+        message: "Peringatan",
+        description: "Kambing ini sudah ada di keranjang Anda",
+      });
+      return;
+    }
 
     setLoadingStates((prev) => ({ ...prev, [kambingId]: true }));
 
@@ -67,7 +93,7 @@ export const KambingList = () => {
         values: {
           tipe_produk: "kambing",
           id_produk: kambingId,
-          jumlah: jumlah,
+          jumlah: 1, // Selalu 1 untuk kambing
         },
       },
       {
@@ -78,8 +104,8 @@ export const KambingList = () => {
             description: "Kambing berhasil ditambahkan ke keranjang",
           });
           setLoadingStates((prev) => ({ ...prev, [kambingId]: false }));
-          // Reset quantity after success
-          setQuantities((prev) => ({ ...prev, [kambingId]: 1 }));
+          // Refetch cart untuk update cartKambingIds
+          refetchCart();
         },
         onError: (error) => {
           open?.({
@@ -94,16 +120,8 @@ export const KambingList = () => {
     );
   };
 
-  const handleQuantityChange = (kambingId: number, value: number | null) => {
-    setQuantities((prev) => ({ ...prev, [kambingId]: value || 1 }));
-  };
-
   const kambings = tableProps?.dataSource || [];
 
-  // Debug untuk melihat identity
-  console.log("Identity:", identity);
-
-  // Gunakan approach yang sama seperti access control provider
   const getUserRole = () => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
@@ -118,9 +136,6 @@ export const KambingList = () => {
   };
 
   const isAdmin = getUserRole() === "admin";
-
-  console.log("User Role:", getUserRole());
-  console.log("Is Admin:", isAdmin);
 
   // Kolom untuk tabel admin
   const adminColumns = [
@@ -272,210 +287,224 @@ export const KambingList = () => {
           ) : (
             // Tampilan Card untuk Customer
             <Row gutter={[16, 16]}>
-              {kambings.map((kambing: BaseRecord) => (
-                <Col xs={24} sm={12} md={8} lg={6} key={kambing.id}>
-                  <Card
-                    hoverable
-                    cover={
-                      <div style={{ position: "relative" }}>
-                        {kambing.image ? (
-                          <div
-                            style={{
-                              height: 200,
-                              overflow: "hidden",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              backgroundColor: "#f0f0f0",
-                            }}
-                          >
-                            <Image
-                              src={`${apiUrl}/${kambing.image}`}
-                              alt={kambing.namaKambing}
-                              preview={true}
+              {kambings.map((kambing: BaseRecord) => {
+                const isInCart = cartKambingIds.includes(kambing.id as number);
+
+                return (
+                  <Col xs={24} sm={12} md={8} lg={6} key={kambing.id}>
+                    <Card
+                      hoverable
+                      cover={
+                        <div style={{ position: "relative" }}>
+                          {kambing.image ? (
+                            <div
                               style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
+                                height: 200,
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f0f0f0",
+                              }}
+                            >
+                              <Image
+                                src={`${apiUrl}/${kambing.image}`}
+                                alt={kambing.namaKambing}
+                                preview={true}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  filter: kambing.sudah_dibooking
+                                    ? "grayscale(50%)"
+                                    : "none",
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                height: 200,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f0f0f0",
                                 filter: kambing.sudah_dibooking
                                   ? "grayscale(50%)"
                                   : "none",
                               }}
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              height: 200,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              backgroundColor: "#f0f0f0",
-                              filter: kambing.sudah_dibooking
-                                ? "grayscale(50%)"
-                                : "none",
-                            }}
-                          >
-                            <Text type="secondary">Tidak ada foto</Text>
-                          </div>
-                        )}
+                            >
+                              <Text type="secondary">Tidak ada foto</Text>
+                            </div>
+                          )}
 
-                        {/* Status Badge untuk kambing yang sudah dibooking */}
-                        {kambing.sudah_dibooking && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 10,
-                              right: 10,
-                              backgroundColor: "rgba(255, 0, 0, 0.8)",
-                              color: "white",
-                              padding: "4px 8px",
-                              borderRadius: "4px",
-                              fontSize: "12px",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            SUDAH DIBOOKING
-                          </div>
-                        )}
-                      </div>
-                    }
-                    actions={[
-                      <EditButton
-                        key="edit"
-                        hideText
-                        size="small"
-                        recordItemId={kambing.id}
-                        title="Edit kambing"
-                      />,
-                      <DeleteButton
-                        key="delete"
-                        hideText
-                        size="small"
-                        recordItemId={kambing.id}
-                        title="Hapus kambing"
-                      />,
-                    ]}
-                  >
-                    <Card.Meta
-                      title={
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Title
-                            level={5}
-                            ellipsis={{ rows: 2 }}
-                            style={{
-                              marginBottom: 0,
-                              flex: 1,
-                              color: kambing.sudah_dibooking
-                                ? "#999"
-                                : "inherit",
-                            }}
-                          >
-                            {kambing.namaKambing}
-                          </Title>
-                          <ShowButton
-                            hideText
-                            size="small"
-                            recordItemId={kambing.id}
-                            icon={<EyeOutlined />}
-                            title="Detail"
-                            style={{ marginLeft: 8 }}
-                          />
+                          {/* Status Badge untuk kambing yang sudah dibooking */}
+                          {kambing.sudah_dibooking && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 10,
+                                right: 10,
+                                backgroundColor: "rgba(255, 0, 0, 0.8)",
+                                color: "white",
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                fontSize: "12px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              SUDAH DIBOOKING
+                            </div>
+                          )}
+
+                          {/* Badge untuk kambing yang sudah ada di keranjang */}
+                          {isInCart && !kambing.sudah_dibooking && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 10,
+                                right: 10,
+                                backgroundColor: "rgba(24, 144, 255, 0.9)",
+                                color: "white",
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                fontSize: "12px",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              DI KERANJANG
+                            </div>
+                          )}
                         </div>
                       }
-                      description={
-                        <Space
-                          direction="vertical"
-                          style={{ width: "100%" }}
+                      actions={[
+                        <EditButton
+                          key="edit"
+                          hideText
                           size="small"
-                        >
+                          recordItemId={kambing.id}
+                          title="Edit kambing"
+                        />,
+                        <DeleteButton
+                          key="delete"
+                          hideText
+                          size="small"
+                          recordItemId={kambing.id}
+                          title="Hapus kambing"
+                        />,
+                      ]}
+                    >
+                      <Card.Meta
+                        title={
                           <div
                             style={{
                               display: "flex",
-                              justifyContent: "space-between",
                               alignItems: "center",
+                              justifyContent: "space-between",
                             }}
                           >
-                            <Tag color="blue">{kambing.umur} bulan</Tag>
-                            {kambing.sudah_dibooking && (
-                              <Tag color="red" icon={<CheckCircleOutlined />}>
-                                Sudah Dibooking
-                              </Tag>
-                            )}
-                          </div>
-
-                          <Text
-                            strong
-                            style={{
-                              fontSize: 16,
-                              color: kambing.sudah_dibooking
-                                ? "#999"
-                                : "#1890ff",
-                            }}
-                          >
-                            Rp {kambing.harga?.toLocaleString("id-ID")}
-                          </Text>
-
-                          {/* Conditional rendering untuk tombol keranjang */}
-                          {!kambing.sudah_dibooking ? (
-                            <Space.Compact
-                              style={{ width: "100%", marginTop: 8 }}
+                            <Title
+                              level={5}
+                              ellipsis={{ rows: 2 }}
+                              style={{
+                                marginBottom: 0,
+                                flex: 1,
+                                color: kambing.sudah_dibooking
+                                  ? "#999"
+                                  : "inherit",
+                              }}
                             >
-                              <InputNumber
-                                min={1}
-                                value={quantities[kambing.id as number] || 1}
-                                onChange={(value) =>
-                                  handleQuantityChange(
-                                    kambing.id as number,
-                                    value
-                                  )
-                                }
-                                style={{ width: "40%" }}
-                              />
+                              {kambing.namaKambing}
+                            </Title>
+                            <ShowButton
+                              hideText
+                              size="small"
+                              recordItemId={kambing.id}
+                              icon={<EyeOutlined />}
+                              title="Detail"
+                              style={{ marginLeft: 8 }}
+                            />
+                          </div>
+                        }
+                        description={
+                          <Space
+                            direction="vertical"
+                            style={{ width: "100%" }}
+                            size="small"
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Tag color="blue">{kambing.umur} bulan</Tag>
+                              {kambing.sudah_dibooking && (
+                                <Tag color="red" icon={<CheckCircleOutlined />}>
+                                  Sudah Dibooking
+                                </Tag>
+                              )}
+                            </div>
+
+                            <Text
+                              strong
+                              style={{
+                                fontSize: 16,
+                                color: kambing.sudah_dibooking
+                                  ? "#999"
+                                  : "#1890ff",
+                              }}
+                            >
+                              Rp {kambing.harga?.toLocaleString("id-ID")}
+                            </Text>
+
+                            {/* Conditional rendering untuk tombol keranjang */}
+                            {!kambing.sudah_dibooking ? (
                               <Button
-                                type="primary"
+                                type={isInCart ? "default" : "primary"}
                                 icon={<ShoppingCartOutlined />}
                                 onClick={() =>
                                   handleAddToCart(kambing.id as number)
                                 }
                                 loading={loadingStates[kambing.id as number]}
-                                style={{ width: "60%" }}
+                                style={{
+                                  width: "100%",
+                                  marginTop: 8,
+                                }}
+                                disabled={isInCart}
                               >
-                                Keranjang
+                                {isInCart
+                                  ? "Sudah di Keranjang"
+                                  : "Tambah ke Keranjang"}
                               </Button>
-                            </Space.Compact>
-                          ) : (
-                            <div
-                              style={{
-                                width: "100%",
-                                marginTop: 8,
-                                textAlign: "center",
-                                padding: "8px",
-                                backgroundColor: "#f5f5f5",
-                                borderRadius: "4px",
-                                border: "1px dashed #d9d9d9",
-                              }}
-                            >
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: "12px" }}
+                            ) : (
+                              <div
+                                style={{
+                                  width: "100%",
+                                  marginTop: 8,
+                                  textAlign: "center",
+                                  padding: "8px",
+                                  backgroundColor: "#f5f5f5",
+                                  borderRadius: "4px",
+                                  border: "1px dashed #d9d9d9",
+                                }}
                               >
-                                Kambing tidak tersedia
-                              </Text>
-                            </div>
-                          )}
-                        </Space>
-                      }
-                    />
-                  </Card>
-                </Col>
-              ))}
+                                <Text
+                                  type="secondary"
+                                  style={{ fontSize: "12px" }}
+                                >
+                                  Kambing tidak tersedia
+                                </Text>
+                              </div>
+                            )}
+                          </Space>
+                        }
+                      />
+                    </Card>
+                  </Col>
+                );
+              })}
             </Row>
           )}
         </Spin>
