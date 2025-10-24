@@ -120,21 +120,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 🔹 Kategori */}
-      <section className="py-12 px-6 text-center bg-white">
-        <h2 className="text-2xl font-semibold mb-8">Kategori Produk</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="p-6 bg-green-100 rounded-xl shadow hover:shadow-lg cursor-pointer">
-            <span className="text-4xl">🐐</span>
-            <h3 className="mt-2 font-bold">Kambing</h3>
-          </div>
-          <div className="p-6 bg-orange-100 rounded-xl shadow hover:shadow-lg cursor-pointer">
-            <span className="text-4xl">🧱</span>
-            <h3 className="mt-2 font-bold">Material</h3>
-          </div>
-        </div>
-      </section>
-
       {/* 🔹 Produk Unggulan - Kambing */}
       <section id="kambing" className="py-12 px-6 bg-gray-50">
         <h2 className="text-2xl font-semibold mb-6 text-center">

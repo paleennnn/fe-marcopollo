@@ -166,51 +166,89 @@ export const OrdersShow = () => {
     );
   }
 
+  // const orderDetailsColumns = [
+  //   {
+  //     title: "Produk",
+  //     dataIndex: "namaProduk",
+  //     key: "namaProduk",
+  //     render: (value: string, record: any) => (
+  //       <Space>
+  //         {record.material?.image || record.kambing?.image ? (
+  //           <Image
+  //             src={
+  //               record.tipeProduk === "material"
+  //                 ? record.material.image.startsWith("http")
+  //                   ? record.material.image
+  //                   : `${apiUrl}/${record.material.image}`
+  //                 : record.kambing.image.startsWith("http")
+  //                 ? record.kambing.image
+  //                 : `${apiUrl}/${record.kambing.image}`
+  //             }
+  //             alt={value}
+  //             width={50}
+  //             height={50}
+  //             style={{ objectFit: "cover", borderRadius: 4 }}
+  //           />
+  //         ) : (
+  //           <div
+  //             style={{
+  //               width: 50,
+  //               height: 50,
+  //               backgroundColor: "#f0f0f0",
+  //               borderRadius: 4,
+  //               display: "flex",
+  //               alignItems: "center",
+  //               justifyContent: "center",
+  //             }}
+  //           >
+  //             <Text type="secondary" style={{ fontSize: 10 }}>
+  //               img
+  //             </Text>
+  //           </div>
+  //         )}
+  //         <div>
+  //           <Text strong>{value}</Text>
+  //           <br />
+  //           <Tag color="blue">{record.tipeProduk}</Tag>
+  //         </div>
+  //       </Space>
+  //     ),
+  //   },
+  //   {
+  //     title: "Harga Satuan",
+  //     dataIndex: "hargaSatuan",
+  //     key: "hargaSatuan",
+  //     align: "right" as const,
+  //     render: (value: string) => (
+  //       <Text>Rp {parseFloat(value).toLocaleString("id-ID")}</Text>
+  //     ),
+  //   },
+  //   {
+  //     title: "Jumlah",
+  //     dataIndex: "jumlah",
+  //     key: "jumlah",
+  //     align: "center" as const,
+  //   },
+  //   {
+  //     title: "Subtotal",
+  //     dataIndex: "subtotal",
+  //     key: "subtotal",
+  //     align: "right" as const,
+  //     render: (value: string) => (
+  //       <Text strong>Rp {parseFloat(value).toLocaleString("id-ID")}</Text>
+  //     ),
+  //   },
+  // ];
+
   const orderDetailsColumns = [
     {
       title: "Produk",
       dataIndex: "namaProduk",
       key: "namaProduk",
       render: (value: string, record: any) => (
-        <Space>
-          {record.material?.image || record.kambing?.image ? (
-            <Image
-              src={
-                record.tipeProduk === "material"
-                  ? record.material.image.startsWith("http")
-                    ? record.material.image
-                    : `${apiUrl}/${record.material.image}`
-                  : record.kambing.image.startsWith("http")
-                  ? record.kambing.image
-                  : `${apiUrl}/${record.kambing.image}`
-              }
-              alt={value}
-              width={50}
-              height={50}
-              style={{ objectFit: "cover", borderRadius: 4 }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 50,
-                height: 50,
-                backgroundColor: "#f0f0f0",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text type="secondary" style={{ fontSize: 10 }}>
-                img
-              </Text>
-            </div>
-          )}
-          <div>
-            <Text strong>{value}</Text>
-            <br />
-            <Tag color="blue">{record.tipeProduk}</Tag>
-          </div>
+        <Space direction="vertical" size={0}>
+          <Text strong>{value}</Text>
+          <Tag color="blue">{record.tipeProduk}</Tag>
         </Space>
       ),
     },
@@ -238,7 +276,7 @@ export const OrdersShow = () => {
         <Text strong>Rp {parseFloat(value).toLocaleString("id-ID")}</Text>
       ),
     },
-  ];
+];
 
   return (
     <>

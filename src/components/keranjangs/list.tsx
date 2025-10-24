@@ -357,7 +357,7 @@ export default function KeranjangListPage() {
               </div>
             )}
           >
-            <Table.Column
+            {/* <Table.Column
               dataIndex="image"
               title="Gambar"
               width={80}
@@ -388,7 +388,7 @@ export default function KeranjangListPage() {
                   </div>
                 )
               }
-            />
+            /> */}
             <Table.Column dataIndex="product_name" title="Nama Produk" />
             <Table.Column
               dataIndex="product_type"
@@ -480,7 +480,7 @@ export default function KeranjangListPage() {
             size="small"
             style={{ marginBottom: 16 }}
           >
-            <Table.Column
+            {/* <Table.Column
               dataIndex="image"
               title="Gambar"
               width={60}
@@ -511,7 +511,7 @@ export default function KeranjangListPage() {
                   </div>
                 )
               }
-            />
+            /> */}
             <Table.Column dataIndex="product_name" title="Nama Produk" />
             <Table.Column
               title="Harga Satuan"

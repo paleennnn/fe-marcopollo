@@ -79,8 +79,11 @@ export const authProviderClient: AuthProvider = {
           role: role || "customer",
         }),
       });
-
-      if (!response.ok) throw new Error("Register failed");
+      
+      const data = await response.json();
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(data.message || "Register failed");
+      }
 
       return { success: true, redirectTo: "/login" };
     } catch {
