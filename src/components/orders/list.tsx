@@ -21,14 +21,14 @@ import dayjs from "dayjs";
 const { Text } = Typography;
 const { TextArea } = Input;
 
-type OrderStatus = "menunggu_verifikasi" | "selesai" | "ditolak";
+type OrderStatus = "semua" | "menunggu_verifikasi" | "selesai" | "ditolak";
 
 export const OrdersList = () => {
   const apiUrl = useApiUrl();
   const { open } = useNotification();
   const invalidate = useInvalidate();
   const [activeTab, setActiveTab] = useState<OrderStatus>(
-    "menunggu_verifikasi"
+    "semua"
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -41,13 +41,16 @@ export const OrdersList = () => {
     resource: "orders",
     syncWithLocation: true,
     filters: {
-      permanent: [
-        {
-          field: "status",
-          operator: "eq",
-          value: activeTab,
-        },
-      ],
+      permanent:
+        activeTab === "semua"
+          ? []
+          : [
+              {
+                field: "status",
+                operator: "eq",
+                value: activeTab,
+              },
+            ],
     },
   });
 
@@ -71,7 +74,7 @@ export const OrdersList = () => {
       case "selesai":
         return "Selesai";
       case "menunggu_verifikasi":
-        return "Menunggu Verifikasi";
+        return "Menunggu";
       case "ditolak":
         return "Ditolak";
       default:
@@ -149,8 +152,17 @@ export const OrdersList = () => {
   };
 
   const handleApproveModalOk = () => {
-    submitVerifikasi(selectedOrder.idOrder, "selesai", catatanAdmin);
-  };
+  Modal.confirm({
+    title: "Konfirmasi Persetujuan Order",
+    content: `Apakah Anda yakin ingin menyetujui order ${selectedOrder?.nomorOrder} atas nama ${selectedOrder?.user?.fullname}?`,
+    okText: "Ya, Setujui",
+    cancelText: "Batal",
+    onOk: () => {
+      submitVerifikasi(selectedOrder.idOrder, "selesai", catatanAdmin);
+    },
+  });
+};
+
 
   const handleModalCancel = () => {
     setIsModalOpen(false);
@@ -171,12 +183,16 @@ export const OrdersList = () => {
 
   const tabItems = [
     {
+      key: "semua",
+      label: "Semua Transaksi",
+    },
+    {
       key: "menunggu_verifikasi",
-      label: "Menunggu Verifikasi",
+      label: "Menunggu",
     },
     {
       key: "selesai",
-      label: "Selesai",
+      label: "Disetujui",
     },
     {
       key: "ditolak",
