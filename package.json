@@ -28,7 +28,7 @@
     "@refinedev/simple-rest": "^5.0.1",
     "@tailus/themer": "^0.1.8",
     "@tailwindcss/postcss": "^4.1.11",
-    "antd": "^5.17.0",
+    "antd": "^5.28.0",
     "axios": "^1.6.2",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
@@ -49,7 +49,8 @@
     "react-dom": "^18.0.0",
     "recharts": "^2.15.2",
     "sharp": "^0.34.1",
-    "swiper": "^11.2.7"
+    "swiper": "^11.2.7",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
