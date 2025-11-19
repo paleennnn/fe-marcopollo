@@ -197,7 +197,7 @@ export default function RootLayout({
                         show: "/customer-orders/show/:id",
                         meta: {
                           canDelete: false,
-                          label: "Riwayat Transaksi",
+                          label: "Pesanan Saya",
                           icon: (
                             <FileTextOutlined style={{ fontSize: "1.2em" }} />
                           ),
