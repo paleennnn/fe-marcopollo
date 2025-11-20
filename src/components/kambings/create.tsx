@@ -16,30 +16,27 @@ export const KambingCreate: React.FC = () => {
 
   const { formProps, saveButtonProps } = useForm({
     action: "create",
-    resource: "kambings", // sekarang CRUD kambing langsung, tidak nested kandang
+    resource: "kambings",
   });
 
-  // 🔹 Fetch daftar kandang dinamis
   useEffect(() => {
-  const token = localStorage.getItem("token"); // ✅ sekarang ada
-  fetch(`${apiUrl}/kandangs`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("DATA KANDANGS:", data);
-      setKandangs(Array.isArray(data) ? data : data.data || []);
+    const token = localStorage.getItem("token");
+    fetch(`${apiUrl}/kandangs`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
-    .catch(() => setKandangs([]));
-}, [apiUrl]); 
+      .then((res) => res.json())
+      .then((data) => {
+        setKandangs(Array.isArray(data) ? data : data.data || []);
+      })
+      .catch(() => setKandangs([]));
+  }, [apiUrl]);
 
   const handleFileChange = ({ fileList }: { fileList: UploadFile[] }) => {
     setFileList(fileList);
   };
 
-  // 🔹 custom submit pakai FormData
   const onFinish = async (values: any) => {
     const formData = new FormData();
 
@@ -51,6 +48,7 @@ export const KambingCreate: React.FC = () => {
     }
 
     formData.append("nama_kambing", values.nama_kambing);
+    formData.append("harga_beli", values.harga_beli);
     formData.append("umur", values.umur);
     formData.append("keterangan", values.keterangan || "");
     formData.append("catatan", values.catatan || "");
@@ -84,7 +82,6 @@ export const KambingCreate: React.FC = () => {
         <Divider />
 
         <Form {...formProps} onFinish={onFinish} layout="vertical">
-          {/* Nama kambing */}
           <Form.Item
             name="nama_kambing"
             label="Nama Kambing"
@@ -93,7 +90,6 @@ export const KambingCreate: React.FC = () => {
             <Input placeholder="Masukkan nama kambing" />
           </Form.Item>
 
-          {/* Dropdown kandang */}
           <Form.Item
             name="kandang_id"
             label="Pilih Kandang"
@@ -108,7 +104,6 @@ export const KambingCreate: React.FC = () => {
             </Select>
           </Form.Item>
 
-          {/* Upload foto */}
           <Form.Item
             name="image"
             label="Foto Kambing"
@@ -129,7 +124,6 @@ export const KambingCreate: React.FC = () => {
             Format: JPG, JPEG, PNG. Ukuran max: 2MB
           </div>
 
-          {/* Tanggal ditambahkan */}
           <Form.Item
             label="Tanggal Ditambahkan"
             name="tanggal_ditambahkan"
@@ -138,36 +132,46 @@ export const KambingCreate: React.FC = () => {
             <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
           </Form.Item>
 
-          {/* Umur */}
           <Form.Item
             label="Umur saat Ditambahkan (bulan)"
             name="umur"
             rules={[{ required: true, message: "Umur wajib diisi" }]}
           >
-            <Input type="number" placeholder="Masukkan umur kambing (bulan)" />
+            <Input type="number" placeholder="Contoh: 12" min={0} />
           </Form.Item>
 
-          {/* Keterangan */}
           <Form.Item
             label="Keterangan"
             name="keterangan"
             rules={[{ required: true, message: "Keterangan wajib diisi" }]}
           >
-            <Input placeholder="Masukkan keterangan" />
+            <Input placeholder="Contoh: Kambing Jawa, warna putih" />
           </Form.Item>
 
-          {/* Catatan */}
           <Form.Item label="Catatan" name="catatan">
             <Input.TextArea rows={3} placeholder="Masukkan catatan tambahan (opsional)" />
           </Form.Item>
 
-          {/* Harga */}
           <Form.Item
-            label="Harga"
-            name="harga"
-            rules={[{ required: true, message: "Harga wajib diisi" }]}
+            label="Harga Beli (Rp)"
+            name="harga_beli"
+            rules={[
+              { required: true, message: "Harga beli wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga beli harus berupa angka" },
+            ]}
           >
-            <Input type="number" placeholder="Masukkan harga kambing" />
+            <Input type="number" placeholder="Contoh: 2000000" min={0} />
+          </Form.Item>
+
+          <Form.Item
+            label="Harga Jual (Rp)"
+            name="harga"
+            rules={[
+              { required: true, message: "Harga jual wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga jual harus berupa angka" },
+            ]}
+          >
+            <Input type="number" placeholder="Contoh: 2500000" min={0} />
           </Form.Item>
         </Form>
       </Create>

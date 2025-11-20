@@ -196,19 +196,51 @@ export const KambingList = () => {
       render: (umur: number) => <Tag color="blue">{umur} bulan</Tag>,
     },
     {
-      title: "Harga",
-      dataIndex: "harga",
-      key: "harga",
+      title: "Harga Beli",
+      dataIndex: "hargaBeli",
+      key: "hargaBeli",
       render: (price: number, record: BaseRecord) => (
         <Text
-          strong
+          type="danger"
           style={{
-            color: record.sudah_dibooking ? "#999" : "#1890ff",
+            color: record.sudah_dibooking ? "#999" : "#f5222d",
           }}
         >
           Rp {price?.toLocaleString("id-ID")}
         </Text>
       ),
+    },
+    {
+      title: "Harga Jual",
+      dataIndex: "harga",
+      key: "harga",
+      render: (price: number, record: BaseRecord) => (
+        <Text
+          type="success"
+          style={{
+            color: record.sudah_dibooking ? "#999" : "#52c41a",
+          }}
+        >
+          Rp {price?.toLocaleString("id-ID")}
+        </Text>
+      ),
+    },
+    {
+      title: "Margin",
+      dataIndex: "harga",
+      key: "margin",
+      render: (hargaJual: number, record: any) => {
+        if (!record.hargaBeli || !hargaJual) return "-";
+        const margin = (
+          ((hargaJual - record.hargaBeli) / record.hargaBeli) *
+          100
+        ).toFixed(2);
+        return (
+          <Tag color={parseFloat(margin) > 20 ? "green" : "orange"}>
+            {margin}%
+          </Tag>
+        );
+      },
     },
     {
       title: "Status",

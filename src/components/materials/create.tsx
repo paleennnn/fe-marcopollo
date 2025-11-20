@@ -13,7 +13,7 @@ export const MaterialCreate = () => {
 
   const { formProps, saveButtonProps } = useForm({
     action: "create",
-    resource: "materials", // sesuai route di backend
+    resource: "materials",
   });
 
   const handleFileChange = ({ fileList }: { fileList: UploadFile[] }) => {
@@ -24,6 +24,7 @@ export const MaterialCreate = () => {
     const formData = new FormData();
 
     formData.append("nama_material", values.nama_material);
+    formData.append("harga_beli", values.harga_beli);
     formData.append("harga_satuan", values.harga_satuan);
 
     if (fileList.length > 0 && fileList[0].originFileObj) {
@@ -63,17 +64,37 @@ export const MaterialCreate = () => {
               { required: true, message: "Nama material wajib diisi" },
             ]}
           >
-            <Input placeholder="Masukkan nama material" />
+            <Input placeholder="Contoh: Pasir, Batu Pondasi, Semen" />
           </Form.Item>
 
           <Form.Item
-            label="Harga Satuan"
+            label="Harga Beli (Rp)"
+            name="harga_beli"
+            rules={[
+              { required: true, message: "Harga beli wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga beli harus berupa angka" },
+            ]}
+          >
+            <Input
+              type="number"
+              placeholder="Contoh: 550000"
+              min={0}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Harga Jual/Satuan (Rp)"
             name="harga_satuan"
             rules={[
               { required: true, message: "Harga satuan wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga satuan harus berupa angka" },
             ]}
           >
-            <Input type="number" placeholder="Masukkan harga satuan" />
+            <Input
+              type="number"
+              placeholder="Contoh: 800000"
+              min={0}
+            />
           </Form.Item>
 
           <Form.Item
@@ -89,7 +110,7 @@ export const MaterialCreate = () => {
             <Upload
               listType="picture"
               maxCount={1}
-              beforeUpload={() => false} // tidak auto upload
+              beforeUpload={() => false}
               onChange={handleFileChange}
               accept=".jpg,.jpeg,.png"
             >

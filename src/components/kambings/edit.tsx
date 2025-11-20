@@ -23,6 +23,7 @@ export const KambingEdit = () => {
       fields: [
         "id",
         "nama_kambing",
+        "harga_beli",
         "umur",
         "harga",
         "keterangan",
@@ -36,7 +37,6 @@ export const KambingEdit = () => {
 
   const data = query?.data?.data;
 
-  // Ambil data kandang untuk dropdown
   useEffect(() => {
     fetch(`${apiUrl}/kandangs`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -46,11 +46,11 @@ export const KambingEdit = () => {
       .catch(() => setKandangs([]));
   }, [apiUrl]);
 
-  // Set initial form values & image preview
   useEffect(() => {
     if (data && formProps.form) {
       formProps.form.setFieldsValue({
         nama_kambing: data.nama_kambing,
+        harga_beli: data.harga_beli,
         umur: data.umur,
         harga: data.harga,
         keterangan: data.keterangan,
@@ -58,7 +58,7 @@ export const KambingEdit = () => {
         tanggal_ditambahkan: data.tanggal_ditambahkan
           ? dayjs(data.tanggal_ditambahkan)
           : null,
-        kandangId: data.kandang_id,
+        kandang_id: data.kandang_id,
       });
 
       if (data.image) {
@@ -89,6 +89,7 @@ export const KambingEdit = () => {
     const formData = new FormData();
 
     formData.append("nama_kambing", values.nama_kambing);
+    formData.append("harga_beli", values.harga_beli);
     formData.append("umur", values.umur);
     formData.append("harga", values.harga);
     formData.append("keterangan", values.keterangan || "");
@@ -138,15 +139,7 @@ export const KambingEdit = () => {
             name="umur"
             rules={[{ required: true, message: "Umur wajib diisi" }]}
           >
-            <Input type="number" placeholder="Masukkan umur kambing" />
-          </Form.Item>
-
-          <Form.Item
-            label="Harga"
-            name="harga"
-            rules={[{ required: true, message: "Harga wajib diisi" }]}
-          >
-            <Input type="number" placeholder="Masukkan harga kambing" />
+            <Input type="number" placeholder="Contoh: 12" min={0} />
           </Form.Item>
 
           <Form.Item
@@ -154,11 +147,33 @@ export const KambingEdit = () => {
             name="keterangan"
             rules={[{ required: true, message: "Keterangan wajib diisi" }]}
           >
-            <Input placeholder="Masukkan keterangan" />
+            <Input placeholder="Contoh: Kambing Jawa, warna putih" />
           </Form.Item>
 
           <Form.Item label="Catatan" name="catatan">
             <Input.TextArea rows={3} placeholder="Masukkan catatan tambahan (opsional)" />
+          </Form.Item>
+
+          <Form.Item
+            label="Harga Beli (Rp)"
+            name="harga_beli"
+            rules={[
+              { required: true, message: "Harga beli wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga beli harus berupa angka" },
+            ]}
+          >
+            <Input type="number" placeholder="Contoh: 2000000" min={0} />
+          </Form.Item>
+
+          <Form.Item
+            label="Harga Jual (Rp)"
+            name="harga"
+            rules={[
+              { required: true, message: "Harga jual wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga jual harus berupa angka" },
+            ]}
+          >
+            <Input type="number" placeholder="Contoh: 2500000" min={0} />
           </Form.Item>
 
           <Form.Item

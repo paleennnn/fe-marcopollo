@@ -18,7 +18,7 @@ export const MaterialEdit = () => {
     action: "edit",
     resource: "materials",
     meta: {
-      fields: ["id_material", "nama_material", "harga_satuan", "image"],
+      fields: ["id_material", "nama_material", "harga_beli", "harga_satuan", "image"],
     },
   });
 
@@ -29,6 +29,7 @@ export const MaterialEdit = () => {
     if (data && formProps.form) {
       formProps.form.setFieldsValue({
         nama_material: data.nama_material,
+        harga_beli: data.harga_beli,
         harga_satuan: data.harga_satuan,
       });
 
@@ -50,7 +51,7 @@ export const MaterialEdit = () => {
   const handleFileChange = ({ fileList }: any) => {
     setFileList(fileList);
     if (fileList.length === 0) {
-      setRemoveImage(true); // kalau kosong berarti user hapus gambar
+      setRemoveImage(true);
     } else {
       setRemoveImage(false);
     }
@@ -60,12 +61,12 @@ export const MaterialEdit = () => {
     const formData = new FormData();
 
     formData.append("nama_material", values.nama_material);
+    formData.append("harga_beli", values.harga_beli);
     formData.append("harga_satuan", values.harga_satuan);
 
     if (removeImage) {
-      formData.append("remove_image", "true"); // kirim sinyal hapus gambar
+      formData.append("remove_image", "true");
     } else if (fileList.length > 0 && fileList[0].originFileObj) {
-      // upload gambar baru
       formData.append("image", fileList[0].originFileObj);
     }
 
@@ -83,15 +84,37 @@ export const MaterialEdit = () => {
             name="nama_material"
             rules={[{ required: true, message: "Nama material wajib diisi" }]}
           >
-            <Input placeholder="Masukkan nama material" />
+            <Input placeholder="Contoh: Pasir, Batu Pondasi" />
           </Form.Item>
 
           <Form.Item
-            label="Harga Satuan"
-            name="harga_satuan"
-            rules={[{ required: true, message: "Harga satuan wajib diisi" }]}
+            label="Harga Beli (Rp)"
+            name="harga_beli"
+            rules={[
+              { required: true, message: "Harga beli wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga beli harus berupa angka" },
+            ]}
           >
-            <Input placeholder="Masukkan harga satuan" type="number" />
+            <Input 
+              type="number" 
+              placeholder="Contoh: 550000"
+              min={0}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Harga Jual/Satuan (Rp)"
+            name="harga_satuan"
+            rules={[
+              { required: true, message: "Harga satuan wajib diisi" },
+              { pattern: /^\d+$/, message: "Harga satuan harus berupa angka" },
+            ]}
+          >
+            <Input 
+              type="number" 
+              placeholder="Contoh: 800000"
+              min={0}
+            />
           </Form.Item>
 
           <Form.Item

@@ -26,6 +26,7 @@ import {
   InputNumber,
   Spin,
   Table,
+  Tag,
 } from "antd";
 import {
   AppstoreOutlined,
@@ -161,14 +162,37 @@ export const MaterialList = () => {
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
-      title: "Harga Satuan",
+      title: "Harga Beli",
+      dataIndex: "hargaBeli",
+      key: "hargaBeli",
+      render: (price: number) => (
+        <Text type="danger">Rp {price?.toLocaleString("id-ID")}</Text>
+      ),
+    },
+    {
+      title: "Harga Jual",
       dataIndex: "hargaSatuan",
       key: "hargaSatuan",
       render: (price: number) => (
-        <Text strong style={{ color: "#1890ff" }}>
-          Rp {price?.toLocaleString("id-ID")}
-        </Text>
+        <Text type="success">Rp {price?.toLocaleString("id-ID")}</Text>
       ),
+    },
+    {
+      title: "Margin",
+      dataIndex: "hargaSatuan",
+      key: "margin",
+      render: (hargaJual: number, record: any) => {
+        if (!record.hargaBeli || !hargaJual) return "-";
+        const margin = (
+          ((hargaJual - record.hargaBeli) / record.hargaBeli) *
+          100
+        ).toFixed(2);
+        return (
+          <Tag color={parseFloat(margin) > 30 ? "green" : "orange"}>
+            {margin}%
+          </Tag>
+        );
+      },
     },
     {
       title: "Aksi",

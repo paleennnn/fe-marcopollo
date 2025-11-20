@@ -1,187 +1,446 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { Card, Col, Row, Statistic, Table, Empty, Skeleton, Button, Space, Tag, Alert } from "antd";
 import {
-  Typography,
-  Row,
-  Col,
-  Card,
-  Statistic,
-  Tabs,
-  Spin,
-  Empty,
-  List,
-  Tag,
-} from "antd";
-import {
+  ShoppingOutlined,
   ShoppingCartOutlined,
-  DatabaseOutlined,
+  UserOutlined,
   DollarOutlined,
-  HomeOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { FinanceComparison } from "@components/finance/finance-comparison";
+import { useApiUrl, useNavigation, useGetIdentity } from "@refinedev/core";
+import { useState, useEffect } from "react";
+import Typography from "antd/es/typography";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+
+interface DashboardStats {
+  totalKambing: number;
+  totalMaterial: number;
+  totalCustomer: number;
+  totalOrdersBulanIni: number;
+  totalRevenueBulanIni: number;
+  totalProfitBulanIni: number;
+}
 
 export const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-  const [overviewData, setOverviewData] = useState<any>(null);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const apiUrl = useApiUrl();
+  const { push } = useNavigation();
+  const { data: identity, isLoading: identityLoading } = useGetIdentity<any>();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [recentKambings, setRecentKambings] = useState<any[]>([]);
+  const [recentMaterials, setRecentMaterials] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
-  // fetch data dari backend public API
+  const currentMonth = dayjs().month() + 1;
+  const currentYear = dayjs().year();
+
+  // Fetch stats
   useEffect(() => {
-    Promise.all([
-      fetch("http://localhost:3333/api/public/dashboard-overview").then((res) =>
-        res.json()
-      ),
-      fetch("http://localhost:3333/api/public/dashboard-chart").then((res) =>
-        res.json()
-      ),
-    ])
-      .then(([overview, chart]) => {
-        setOverviewData(overview);
-        setChartData(chart);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        setError(null);
 
-  // ringkasan
-  const renderOverview = () => {
-    if (loading) return <Spin size="large" />;
-    if (!overviewData) return <Empty description="Tidak ada data" />;
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
 
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        console.log("🔄 Fetching dashboard stats...");
+
+        // Fetch semua data yang dibutuhkan
+        const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = await Promise.all([
+          fetch(`${apiUrl}/kambings`, { headers }),
+          fetch(`${apiUrl}/materials`, { headers }),
+          fetch(`${apiUrl}/users`, { headers }),
+          fetch(`${apiUrl}/orders`, { headers }),
+          fetch(`${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`, { headers }),
+        ]);
+
+        console.log("Response statuses:", {
+          kambings: kambingsRes.status,
+          materials: materialsRes.status,
+          users: usersRes.status,
+          orders: ordersRes.status,
+          finance: financeRes.status,
+        });
+
+        const kambings = await kambingsRes.json();
+        const materials = await materialsRes.json();
+        const users = await usersRes.json();
+        const orders = await ordersRes.json();
+        const finance = financeRes.ok ? await financeRes.json() : { data: null };
+
+        console.log("📊 Finance response:", finance);
+        console.log("📋 Raw orders response:", orders);
+
+        // Handle responses
+        const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
+        const materialsData = Array.isArray(materials) ? materials : materials.data || [];
+        const usersData = Array.isArray(users) ? users : users.data || [];
+
+        // FIX: AdonisJS orders response format
+        let ordersData: any[] = [];
+        if (Array.isArray(orders)) {
+          ordersData = orders;
+        } else if (orders?.data?.data && Array.isArray(orders.data.data)) {
+          ordersData = orders.data.data;
+        } else if (orders?.data && Array.isArray(orders.data)) {
+          ordersData = orders.data;
+        } else if (orders?.message && orders?.data?.data) {
+          ordersData = orders.data.data || [];
+        }
+
+        console.log("✅ Processed orders:", ordersData);
+
+        // Filter orders bulan ini yang selesai
+        const ordersThisMonth = ordersData.filter((order: any) => {
+          // Support berbagai format field name
+          const orderDate = order.tanggalVerifikasi || order.tanggal_verifikasi
+            ? dayjs(order.tanggalVerifikasi || order.tanggal_verifikasi)
+            : dayjs(order.tanggalOrder || order.tanggal_order || order.created_at);
+
+          const status = order.statusPembayaran || order.status_pembayaran || order.status;
+          const isThisMonth =
+            orderDate.month() + 1 === currentMonth &&
+            orderDate.year() === currentYear;
+          const isCompleted = status === "selesai";
+
+          console.log(`Order ${order.idOrder || order.id}:`, {
+            date: orderDate.format("YYYY-MM-DD"),
+            status,
+            isThisMonth,
+            isCompleted,
+          });
+
+          return isThisMonth && isCompleted;
+        });
+
+        console.log("✅ Orders this month:", ordersThisMonth);
+
+        // Finance data
+        const financeData = finance?.data?.ringkasan;
+        console.log("💰 Finance data:", financeData);
+
+        const totalProfit = financeData?.profit?.total ?? 0;
+        const totalRevenue = financeData?.omset?.total ?? 0;
+
+        setStats({
+          totalKambing: kambingsData?.length || 0,
+          totalMaterial: materialsData?.length || 0,
+          totalCustomer: usersData?.filter((u: any) => u.role === "customer").length || 0,
+          totalOrdersBulanIni: ordersThisMonth.length,
+          totalRevenueBulanIni: totalRevenue,
+          totalProfitBulanIni: totalProfit,
+        });
+
+        // Set recent data
+        setRecentKambings(kambingsData?.slice(0, 5) || []);
+        setRecentMaterials(materialsData?.slice(0, 5) || []);
+        setRecentOrders(ordersThisMonth.slice(0, 5) || []);
+
+        console.log("✅ Dashboard data loaded successfully");
+        setStatsLoading(false);
+      } catch (error: any) {
+        console.error("❌ Failed to fetch dashboard stats:", error);
+        setError(error?.message || "Gagal memuat data dashboard");
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [apiUrl, currentMonth, currentYear]);
+
+  // ⚠️ JANGAN RENDER CHART SAMPAI IDENTITY SELESAI LOAD
+  if (identityLoading || statsLoading) {
     return (
-      <>
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Total Kambing"
-                value={overviewData.total_kambing}
-                prefix={<DatabaseOutlined />}
-                valueStyle={{ color: "#1890ff" }}
-              />
-            </Card>
+      <Row gutter={[16, 16]}>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Col xs={24} sm={12} lg={8} key={i}>
+            <Skeleton active paragraph={{ rows: 2 }} />
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Total Material"
-                value={overviewData.total_material}
-                prefix={<HomeOutlined />}
-                valueStyle={{ color: "#722ed1" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Penjualan Bulan Ini"
-                value={overviewData.total_penjualan_bulan}
-                prefix={<ShoppingCartOutlined />}
-                valueStyle={{ color: "#52c41a" }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic
-                title="Pembelian Bulan Ini"
-                value={overviewData.total_pembelian_bulan}
-                prefix={<DollarOutlined />}
-                valueStyle={{ color: "#faad14" }}
-              />
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Chart penjualan/pembelian */}
-        <Card title="Statistik Penjualan & Pembelian per Bulan">
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bulan" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="penjualan" fill="#52c41a" />
-              <Bar dataKey="pembelian" fill="#faad14" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </>
+        ))}
+      </Row>
     );
-  };
+  }
 
-  // list kambing terbaru
-  const renderKambing = () => {
-    if (loading) return <Spin size="large" />;
-    if (!overviewData?.kambing_terbaru) return <Empty />;
-
+  // Show error alert jika ada
+  if (error) {
     return (
-      <List
-        header={<Title level={4}>Kambing Terbaru</Title>}
-        dataSource={overviewData.kambing_terbaru}
-        renderItem={(item: any) => (
-          <List.Item>
-            <List.Item.Meta
-              title={item.nama_kambing}
-              description={`Rp ${item.harga.toLocaleString("id-ID")}`}
-            />
-            <Tag color="blue">{item.umur} bln</Tag>
-          </List.Item>
-        )}
+      <Alert
+        message="Error"
+        description={error}
+        type="error"
+        showIcon
+        style={{ marginBottom: 16 }}
+        closable
       />
     );
-  };
+  }
 
-  // list material terbaru
-  const renderMaterial = () => {
-    if (loading) return <Spin size="large" />;
-    if (!overviewData?.material_terbaru) return <Empty />;
-
-    return (
-      <List
-        header={<Title level={4}>Material Terbaru</Title>}
-        dataSource={overviewData.material_terbaru}
-        renderItem={(item: any) => (
-          <List.Item>
-            <List.Item.Meta
-              title={item.nama_material}
-              description={`Rp ${item.harga_satuan.toLocaleString("id-ID")}`}
-            />
-            <Tag color="purple">stok {item.stok}</Tag>
-          </List.Item>
-        )}
-      />
-    );
-  };
+  if (!stats) {
+    return <Empty description="Tidak ada data" />;
+  }
 
   return (
-    <div>
-      <Title level={2}>📊 Dashboard Marcopollo Group</Title>
-      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-        <TabPane tab="Ringkasan" key="overview">
-          {renderOverview()}
-        </TabPane>
-        <TabPane tab="Kambing" key="kambing">
-          {renderKambing()}
-        </TabPane>
-        <TabPane tab="Material" key="material">
-          {renderMaterial()}
-        </TabPane>
-      </Tabs>
+    <div style={{ padding: "24px 0" }}>
+      {/* Stats Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title="Total Kambing"
+              value={stats.totalKambing}
+              prefix={<ShoppingOutlined />}
+              valueStyle={{ color: "#1890ff" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title="Total Material"
+              value={stats.totalMaterial}
+              prefix={<ShoppingOutlined />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title="Total Customer"
+              value={stats.totalCustomer}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: "#faad14" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title={`Pesanan (${dayjs().format("MMM YYYY")})`}
+              value={stats.totalOrdersBulanIni}
+              prefix={<ShoppingCartOutlined />}
+              valueStyle={{ color: "#eb2f96" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title={`Revenue (${dayjs().format("MMM YYYY")})`}
+              value={stats.totalRevenueBulanIni}
+              prefix={<DollarOutlined />}
+              suffix="Rp"
+              valueStyle={{ color: "#f5222d", fontSize: "16px" }}
+              formatter={(value: any) =>
+                `${(value as number).toLocaleString("id-ID")}`
+              }
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={8}>
+          <Card hoverable>
+            <Statistic
+              title={`Profit (${dayjs().format("MMM YYYY")})`}
+              value={stats.totalProfitBulanIni}
+              prefix={<DollarOutlined />}
+              suffix="Rp"
+              valueStyle={{ color: "#52c41a", fontSize: "16px" }}
+              formatter={(value: any) =>
+                `${(value as number).toLocaleString("id-ID")}`
+              }
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 📈 Finance Trend - PASTIKAN identity SUDAH LOAD */}
+      {/*{identity && identity.role === "admin" && (*/}
+      {true && ( 
+        <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 32 }}>
+          <Col xs={24}>
+            <FinanceComparison />
+          </Col>
+        </Row>
+      )}
+
+      {/* 📋 Recent Data Tables */}
+      <Row gutter={[16, 16]}>
+        {/* Recent Kambings */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={<Title level={4}>🐐 Kambing Terbaru</Title>}
+            extra={
+              <Button type="link" onClick={() => push("/kambings")}>
+                Lihat Semua <ArrowRightOutlined />
+              </Button>
+            }
+            loading={false}
+          >
+            {recentKambings.length > 0 ? (
+              <Table
+                dataSource={recentKambings}
+                columns={[
+                  {
+                    title: "Nama",
+                    dataIndex: "namaKambing",
+                    key: "namaKambing",
+                    render: (text) => <Text strong>{text}</Text>,
+                  },
+                  {
+                    title: "Umur",
+                    dataIndex: "umur",
+                    key: "umur",
+                    render: (umur) => <span>{umur} bulan</span>,
+                  },
+                  {
+                    title: "Harga",
+                    dataIndex: "harga",
+                    key: "harga",
+                    render: (harga) => (
+                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                    ),
+                  },
+                ]}
+                pagination={false}
+                size="small"
+                rowKey={(record) => record.id_kambing || record.id}
+              />
+            ) : (
+              <Empty description="Belum ada kambing" />
+            )}
+          </Card>
+        </Col>
+
+        {/* Recent Materials */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={<Title level={4}>📦 Material Terbaru</Title>}
+            extra={
+              <Button type="link" onClick={() => push("/materials")}>
+                Lihat Semua <ArrowRightOutlined />
+              </Button>
+            }
+            loading={false}
+          >
+            {recentMaterials.length > 0 ? (
+              <Table
+                dataSource={recentMaterials}
+                columns={[
+                  {
+                    title: "Nama",
+                    dataIndex: "namaMaterial",
+                    key: "namaMaterial",
+                    render: (text) => <Text strong>{text}</Text>,
+                  },
+                  {
+                    title: "Harga Beli",
+                    dataIndex: "hargaBeli",
+                    key: "hargaBeli",
+                    render: (harga) => (
+                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                    ),
+                  },
+                  {
+                    title: "Harga Jual",
+                    dataIndex: "hargaSatuan",
+                    key: "hargaSatuan",
+                    render: (harga) => (
+                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                    ),
+                  },
+                ]}
+                pagination={false}
+                size="small"
+                rowKey={(record) => record.id_material || record.id}
+              />
+            ) : (
+              <Empty description="Belum ada material" />
+            )}
+          </Card>
+        </Col>
+
+        {/* Recent Orders */}
+        <Col xs={24}>
+          <Card
+            title={<Title level={4}>🛒 Pesanan Terbaru (Selesai)</Title>}
+            extra={
+              <Button type="link" onClick={() => push("/orders")}>
+                Lihat Semua <ArrowRightOutlined />
+              </Button>
+            }
+            loading={false}
+          >
+            {recentOrders.length > 0 ? (
+              <Table
+                dataSource={recentOrders}
+                columns={[
+                  {
+                    title: "No. Order",
+                    dataIndex: ["idOrder"],
+                    key: "idOrder",
+                    render: (text) => <Text strong>#{text}</Text>,
+                  },
+                  {
+                    title: "Customer",
+                    dataIndex: ["user", "fullname"],
+                    key: "customer",
+                    render: (text) => text || "-",
+                  },
+                  {
+                    title: "Total",
+                    dataIndex: "totalHarga",
+                    key: "totalHarga",
+                    render: (harga) => (
+                      <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
+                    ),
+                  },
+                  {
+                    title: "Tanggal",
+                    dataIndex: "tanggalOrder",
+                    key: "tanggalOrder",
+                    render: (date) => date ? dayjs(date).format("DD MMM YYYY") : "-",
+                  },
+                  {
+                    title: "Status",
+                    dataIndex: "statusPembayaran",
+                    key: "statusPembayaran",
+                    render: (status) => {
+                      const colors: Record<string, string> = {
+                        selesai: "green",
+                        menunggu_verifikasi: "orange",
+                        ditolak: "red",
+                      };
+                      return <Tag color={colors[status] || "blue"}>{status}</Tag>;
+                    },
+                  },
+                ]}
+                pagination={false}
+                size="small"
+                rowKey={(record) => record.idOrder || record.id}
+              />
+            ) : (
+              <Empty description="Belum ada pesanan bulan ini" />
+            )}
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

@@ -11,6 +11,7 @@ import {
   Descriptions,
   Image,
   Skeleton,
+  Tag,
 } from "antd";
 import { AppstoreOutlined, CalendarOutlined } from "@ant-design/icons";
 import UnauthorizedPage from "@app/unauthorized";
@@ -43,6 +44,14 @@ export const MaterialShow = () => {
         style={{ maxWidth: "100%", borderRadius: "8px" }}
       />
     );
+  };
+
+  // Hitung margin keuntungan
+  const calculateMargin = () => {
+    if (!record?.harga_beli || !record?.harga_satuan) return 0;
+    const profit = record.harga_satuan - record.harga_beli;
+    const margin = (profit / record.harga_beli) * 100;
+    return margin.toFixed(2);
   };
 
   if (query.error && query.error.statusCode === 403) {
@@ -100,12 +109,35 @@ export const MaterialShow = () => {
                 <Descriptions.Item label="Nama Material">
                   {record?.nama_material ?? "-"}
                 </Descriptions.Item>
-                <Descriptions.Item label="Harga Satuan">
-                  {" "}
-                  {record?.harga_satuan
-                    ? `Rp ${record.harga_satuan.toLocaleString("id-ID")}`
-                    : "-"}
+
+                <Descriptions.Item label="Harga Beli">
+                  <Text strong style={{ color: "#f5222d" }}>
+                    Rp {record?.harga_beli?.toLocaleString("id-ID") ?? "-"}
+                  </Text>
                 </Descriptions.Item>
+
+                <Descriptions.Item label="Harga Jual/Satuan">
+                  <Text strong style={{ color: "#52c41a" }}>
+                    Rp {record?.harga_satuan?.toLocaleString("id-ID") ?? "-"}
+                  </Text>
+                </Descriptions.Item>
+
+                <Descriptions.Item label="Margin Keuntungan">
+                  {record?.harga_beli && record?.harga_satuan ? (
+                    <>
+                      <Tag color="blue">{calculateMargin()}%</Tag>
+                      <Text style={{ marginLeft: 8 }}>
+                        (Rp{" "}
+                        {(
+                          record.hargaSatuan - record.hargaBeli
+                        ).toLocaleString("id-ID")})
+                      </Text>
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </Descriptions.Item>
+
                 <Descriptions.Item label="Tanggal Dibuat">
                   <CalendarOutlined />{" "}
                   {record?.created_at ? (
@@ -117,6 +149,7 @@ export const MaterialShow = () => {
                     "-"
                   )}
                 </Descriptions.Item>
+
                 <Descriptions.Item label="Terakhir Diperbarui">
                   <CalendarOutlined />{" "}
                   {record?.updated_at ? (
