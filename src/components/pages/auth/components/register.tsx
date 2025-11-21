@@ -5,6 +5,7 @@ import {
   useActiveAuthProvider,
   useLink,
   useRegister,
+  useNotification,
   useRouterContext,
   useRouterType,
   useTranslate,
@@ -22,6 +23,7 @@ type DivPropsType = React.DetailedHTMLProps<
   HTMLDivElement
 >;
 import type { FormProps } from "antd";
+import router from "next/dist/shared/lib/router/router";
 
 type FormPropsType = FormProps;
 
@@ -52,6 +54,7 @@ export const RegisterPage: React.FC<RegisterProps> = ({
 
   const translate = useTranslate();
   const authProvider = useActiveAuthProvider();
+  const { open } = useNotification();
   const { mutate: register, isLoading } = useRegister({
     v3LegacyAuthProviderCompatible: Boolean(authProvider?.isLegacy),
   });
@@ -69,12 +72,31 @@ export const RegisterPage: React.FC<RegisterProps> = ({
   };
 
   const onFinish = (values: any) => {
-    register({
+  register(
+    {
       ...mutationVariables,
       ...values,
       role: "customer",
-    });
-  };
+    },
+    {
+      onSuccess: () => {
+        open?.({
+          type: "success",
+          message: "Register berhasil!",
+          description: "Silahkan cek email anda untuk verifikasi akun.",
+        });
+      },
+      onError: (error: any) => {
+        open?.({
+          type: "error",
+          message: "Register gagal!",
+          description: error?.message || "Terjadi kesalahan, coba lagi.",
+        });
+      },
+    }
+  );
+};
+
 
   const content = (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
