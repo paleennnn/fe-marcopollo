@@ -9,6 +9,7 @@ import {
   ArrowRightOutlined,
 } from "@ant-design/icons";
 import { FinanceComparison } from "@components/finance/finance-comparison";
+import { CustomerWallet } from "@components/customer/customer-wallet";
 import { useApiUrl, useNavigation, useGetIdentity } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import Typography from "antd/es/typography";
@@ -39,9 +40,38 @@ export const Dashboard = () => {
   const currentMonth = dayjs().month() + 1;
   const currentYear = dayjs().year();
 
-  // Fetch stats
+  // ✅ FUNCTION UNTUK GET USER ROLE DARI LOCALSTORAGE
+  const getUserRole = () => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return null;
+
+      const parsed = JSON.parse(userStr);
+      const user = parsed.user ? parsed.user : parsed;
+      return user.role;
+    } catch {
+      return null;
+    }
+  };
+
+  const userRole = getUserRole();
+  const isAdmin = userRole === "admin";
+  const isCustomer = userRole === "customer";
+
+  console.log("👤 User Role:", userRole);
+  console.log("🛡️ Is Admin:", isAdmin);
+  console.log("👥 Is Customer:", isCustomer);
+
+  // Fetch stats - HANYA UNTUK ADMIN
   useEffect(() => {
     const fetchStats = async () => {
+      // ✅ JIKA CUSTOMER, SKIP FETCH STATS ADMIN
+      if (isCustomer) {
+        console.log("👥 Customer detected, skipping admin stats fetch");
+        setStatsLoading(false);
+        return;
+      }
+
       try {
         setStatsLoading(true);
         setError(null);
@@ -55,7 +85,7 @@ export const Dashboard = () => {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        console.log("🔄 Fetching dashboard stats...");
+        console.log("🔄 Fetching dashboard stats for admin...");
 
         // Fetch semua data yang dibutuhkan
         const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = await Promise.all([
@@ -158,9 +188,9 @@ export const Dashboard = () => {
     };
 
     fetchStats();
-  }, [apiUrl, currentMonth, currentYear]);
+  }, [apiUrl, currentMonth, currentYear, isCustomer]);
 
-  // ⚠️ JANGAN RENDER CHART SAMPAI IDENTITY SELESAI LOAD
+  // ⚠️ LOADING STATE
   if (identityLoading || statsLoading) {
     return (
       <Row gutter={[16, 16]}>
@@ -187,260 +217,282 @@ export const Dashboard = () => {
     );
   }
 
-  if (!stats) {
-    return <Empty description="Tidak ada data" />;
-  }
-
+  // ✅ RENDER BERDASARKAN ROLE
   return (
     <div style={{ padding: "24px 0" }}>
-      {/* Stats Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title="Total Kambing"
-              value={stats.totalKambing}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-          </Card>
-        </Col>
+      {/* 🛡️ TAMPILAN UNTUK ADMIN */}
+      {isAdmin && (
+        <>
+          {/* Stats Cards - HANYA UNTUK ADMIN */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title="Total Kambing"
+                  value={stats?.totalKambing || 0}
+                  prefix={<ShoppingOutlined />}
+                  valueStyle={{ color: "#1890ff" }}
+                />
+              </Card>
+            </Col>
 
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title="Total Material"
-              value={stats.totalMaterial}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title="Total Material"
+                  value={stats?.totalMaterial || 0}
+                  prefix={<ShoppingOutlined />}
+                  valueStyle={{ color: "#52c41a" }}
+                />
+              </Card>
+            </Col>
 
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title="Total Customer"
-              value={stats.totalCustomer}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: "#faad14" }}
-            />
-          </Card>
-        </Col>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title="Total Customer"
+                  value={stats?.totalCustomer || 0}
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: "#faad14" }}
+                />
+              </Card>
+            </Col>
 
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title={`Pesanan (${dayjs().format("MMM YYYY")})`}
-              value={stats.totalOrdersBulanIni}
-              prefix={<ShoppingCartOutlined />}
-              valueStyle={{ color: "#eb2f96" }}
-            />
-          </Card>
-        </Col>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title={`Pesanan (${dayjs().format("MMM YYYY")})`}
+                  value={stats?.totalOrdersBulanIni || 0}
+                  prefix={<ShoppingCartOutlined />}
+                  valueStyle={{ color: "#eb2f96" }}
+                />
+              </Card>
+            </Col>
 
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title={`Revenue (${dayjs().format("MMM YYYY")})`}
-              value={stats.totalRevenueBulanIni}
-              prefix={<DollarOutlined />}
-              suffix="Rp"
-              valueStyle={{ color: "#f5222d", fontSize: "16px" }}
-              formatter={(value: any) =>
-                `${(value as number).toLocaleString("id-ID")}`
-              }
-            />
-          </Card>
-        </Col>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title={`Revenue (${dayjs().format("MMM YYYY")})`}
+                  value={stats?.totalRevenueBulanIni || 0}
+                  prefix={<DollarOutlined />}
+                  suffix="Rp"
+                  valueStyle={{ color: "#f5222d", fontSize: "16px" }}
+                  formatter={(value: any) =>
+                    `${(value as number).toLocaleString("id-ID")}`
+                  }
+                />
+              </Card>
+            </Col>
 
-        <Col xs={24} sm={12} lg={8}>
-          <Card hoverable>
-            <Statistic
-              title={`Profit (${dayjs().format("MMM YYYY")})`}
-              value={stats.totalProfitBulanIni}
-              prefix={<DollarOutlined />}
-              suffix="Rp"
-              valueStyle={{ color: "#52c41a", fontSize: "16px" }}
-              formatter={(value: any) =>
-                `${(value as number).toLocaleString("id-ID")}`
-              }
-            />
-          </Card>
-        </Col>
-      </Row>
+            <Col xs={24} sm={12} lg={8}>
+              <Card hoverable>
+                <Statistic
+                  title={`Profit (${dayjs().format("MMM YYYY")})`}
+                  value={stats?.totalProfitBulanIni || 0}
+                  prefix={<DollarOutlined />}
+                  suffix="Rp"
+                  valueStyle={{ color: "#52c41a", fontSize: "16px" }}
+                  formatter={(value: any) =>
+                    `${(value as number).toLocaleString("id-ID")}`
+                  }
+                />
+              </Card>
+            </Col>
+          </Row>
 
-      {/* 📈 Finance Trend - PASTIKAN identity SUDAH LOAD */}
-      {/*{identity && identity.role === "admin" && (*/}
-      {true && ( 
+          {/* 📈 Finance Trend - HANYA UNTUK ADMIN */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 32 }}>
+            <Col xs={24}>
+              <FinanceComparison />
+            </Col>
+          </Row>
+
+          {/* 📋 Recent Data Tables - HANYA UNTUK ADMIN */}
+          <Row gutter={[16, 16]}>
+            {/* Recent Kambings */}
+            <Col xs={24} lg={12}>
+              <Card
+                title={<Title level={4}>🐐 Kambing Terbaru</Title>}
+                extra={
+                  <Button type="link" onClick={() => push("/kambings")}>
+                    Lihat Semua <ArrowRightOutlined />
+                  </Button>
+                }
+                loading={false}
+              >
+                {recentKambings.length > 0 ? (
+                  <Table
+                    dataSource={recentKambings}
+                    columns={[
+                      {
+                        title: "Nama",
+                        dataIndex: "namaKambing",
+                        key: "namaKambing",
+                        render: (text) => <Text strong>{text}</Text>,
+                      },
+                      {
+                        title: "Umur",
+                        dataIndex: "umur",
+                        key: "umur",
+                        render: (umur) => <span>{umur} bulan</span>,
+                      },
+                      {
+                        title: "Harga",
+                        dataIndex: "harga",
+                        key: "harga",
+                        render: (harga) => (
+                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                        ),
+                      },
+                    ]}
+                    pagination={false}
+                    size="small"
+                    rowKey={(record) => record.id_kambing || record.id}
+                  />
+                ) : (
+                  <Empty description="Belum ada kambing" />
+                )}
+              </Card>
+            </Col>
+
+            {/* Recent Materials */}
+            <Col xs={24} lg={12}>
+              <Card
+                title={<Title level={4}>📦 Material Terbaru</Title>}
+                extra={
+                  <Button type="link" onClick={() => push("/materials")}>
+                    Lihat Semua <ArrowRightOutlined />
+                  </Button>
+                }
+                loading={false}
+              >
+                {recentMaterials.length > 0 ? (
+                  <Table
+                    dataSource={recentMaterials}
+                    columns={[
+                      {
+                        title: "Nama",
+                        dataIndex: "namaMaterial",
+                        key: "namaMaterial",
+                        render: (text) => <Text strong>{text}</Text>,
+                      },
+                      {
+                        title: "Harga Beli",
+                        dataIndex: "hargaBeli",
+                        key: "hargaBeli",
+                        render: (harga) => (
+                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                        ),
+                      },
+                      {
+                        title: "Harga Jual",
+                        dataIndex: "hargaSatuan",
+                        key: "hargaSatuan",
+                        render: (harga) => (
+                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                        ),
+                      },
+                    ]}
+                    pagination={false}
+                    size="small"
+                    rowKey={(record) => record.id_material || record.id}
+                  />
+                ) : (
+                  <Empty description="Belum ada material" />
+                )}
+              </Card>
+            </Col>
+
+            {/* Recent Orders */}
+            <Col xs={24}>
+              <Card
+                title={<Title level={4}>🛒 Pesanan Terbaru (Selesai)</Title>}
+                extra={
+                  <Button type="link" onClick={() => push("/orders")}>
+                    Lihat Semua <ArrowRightOutlined />
+                  </Button>
+                }
+                loading={false}
+              >
+                {recentOrders.length > 0 ? (
+                  <Table
+                    dataSource={recentOrders}
+                    columns={[
+                      {
+                        title: "No. Order",
+                        dataIndex: ["idOrder"],
+                        key: "idOrder",
+                        render: (text) => <Text strong>#{text}</Text>,
+                      },
+                      {
+                        title: "Customer",
+                        dataIndex: ["user", "fullname"],
+                        key: "customer",
+                        render: (text) => text || "-",
+                      },
+                      {
+                        title: "Total",
+                        dataIndex: "totalHarga",
+                        key: "totalHarga",
+                        render: (harga) => (
+                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
+                        ),
+                      },
+                      {
+                        title: "Tanggal",
+                        dataIndex: "tanggalOrder",
+                        key: "tanggalOrder",
+                        render: (date) => date ? dayjs(date).format("DD MMM YYYY") : "-",
+                      },
+                      {
+                        title: "Status",
+                        dataIndex: "statusPembayaran",
+                        key: "statusPembayaran",
+                        render: (status) => {
+                          const colors: Record<string, string> = {
+                            selesai: "green",
+                            menunggu_verifikasi: "orange",
+                            ditolak: "red",
+                          };
+                          return <Tag color={colors[status] || "blue"}>{status}</Tag>;
+                        },
+                      },
+                    ]}
+                    pagination={false}
+                    size="small"
+                    rowKey={(record) => record.idOrder || record.id}
+                  />
+                ) : (
+                  <Empty description="Belum ada pesanan bulan ini" />
+                )}
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {/* 👥 TAMPILAN UNTUK CUSTOMER */}
+      {isCustomer && (
         <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 32 }}>
           <Col xs={24}>
-            <FinanceComparison />
+            <CustomerWallet />
           </Col>
         </Row>
       )}
 
-      {/* 📋 Recent Data Tables */}
-      <Row gutter={[16, 16]}>
-        {/* Recent Kambings */}
-        <Col xs={24} lg={12}>
-          <Card
-            title={<Title level={4}>🐐 Kambing Terbaru</Title>}
-            extra={
-              <Button type="link" onClick={() => push("/kambings")}>
-                Lihat Semua <ArrowRightOutlined />
-              </Button>
-            }
-            loading={false}
+      {/* ❌ JIKA ROLE TIDAK DIKENALI */}
+      {!isAdmin && !isCustomer && (
+        <Card>
+          <Empty 
+            description="Role pengguna tidak dikenali" 
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
-            {recentKambings.length > 0 ? (
-              <Table
-                dataSource={recentKambings}
-                columns={[
-                  {
-                    title: "Nama",
-                    dataIndex: "namaKambing",
-                    key: "namaKambing",
-                    render: (text) => <Text strong>{text}</Text>,
-                  },
-                  {
-                    title: "Umur",
-                    dataIndex: "umur",
-                    key: "umur",
-                    render: (umur) => <span>{umur} bulan</span>,
-                  },
-                  {
-                    title: "Harga",
-                    dataIndex: "harga",
-                    key: "harga",
-                    render: (harga) => (
-                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
-                    ),
-                  },
-                ]}
-                pagination={false}
-                size="small"
-                rowKey={(record) => record.id_kambing || record.id}
-              />
-            ) : (
-              <Empty description="Belum ada kambing" />
-            )}
-          </Card>
-        </Col>
-
-        {/* Recent Materials */}
-        <Col xs={24} lg={12}>
-          <Card
-            title={<Title level={4}>📦 Material Terbaru</Title>}
-            extra={
-              <Button type="link" onClick={() => push("/materials")}>
-                Lihat Semua <ArrowRightOutlined />
-              </Button>
-            }
-            loading={false}
-          >
-            {recentMaterials.length > 0 ? (
-              <Table
-                dataSource={recentMaterials}
-                columns={[
-                  {
-                    title: "Nama",
-                    dataIndex: "namaMaterial",
-                    key: "namaMaterial",
-                    render: (text) => <Text strong>{text}</Text>,
-                  },
-                  {
-                    title: "Harga Beli",
-                    dataIndex: "hargaBeli",
-                    key: "hargaBeli",
-                    render: (harga) => (
-                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
-                    ),
-                  },
-                  {
-                    title: "Harga Jual",
-                    dataIndex: "hargaSatuan",
-                    key: "hargaSatuan",
-                    render: (harga) => (
-                      <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
-                    ),
-                  },
-                ]}
-                pagination={false}
-                size="small"
-                rowKey={(record) => record.id_material || record.id}
-              />
-            ) : (
-              <Empty description="Belum ada material" />
-            )}
-          </Card>
-        </Col>
-
-        {/* Recent Orders */}
-        <Col xs={24}>
-          <Card
-            title={<Title level={4}>🛒 Pesanan Terbaru (Selesai)</Title>}
-            extra={
-              <Button type="link" onClick={() => push("/orders")}>
-                Lihat Semua <ArrowRightOutlined />
-              </Button>
-            }
-            loading={false}
-          >
-            {recentOrders.length > 0 ? (
-              <Table
-                dataSource={recentOrders}
-                columns={[
-                  {
-                    title: "No. Order",
-                    dataIndex: ["idOrder"],
-                    key: "idOrder",
-                    render: (text) => <Text strong>#{text}</Text>,
-                  },
-                  {
-                    title: "Customer",
-                    dataIndex: ["user", "fullname"],
-                    key: "customer",
-                    render: (text) => text || "-",
-                  },
-                  {
-                    title: "Total",
-                    dataIndex: "totalHarga",
-                    key: "totalHarga",
-                    render: (harga) => (
-                      <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                    ),
-                  },
-                  {
-                    title: "Tanggal",
-                    dataIndex: "tanggalOrder",
-                    key: "tanggalOrder",
-                    render: (date) => date ? dayjs(date).format("DD MMM YYYY") : "-",
-                  },
-                  {
-                    title: "Status",
-                    dataIndex: "statusPembayaran",
-                    key: "statusPembayaran",
-                    render: (status) => {
-                      const colors: Record<string, string> = {
-                        selesai: "green",
-                        menunggu_verifikasi: "orange",
-                        ditolak: "red",
-                      };
-                      return <Tag color={colors[status] || "blue"}>{status}</Tag>;
-                    },
-                  },
-                ]}
-                pagination={false}
-                size="small"
-                rowKey={(record) => record.idOrder || record.id}
-              />
-            ) : (
-              <Empty description="Belum ada pesanan bulan ini" />
-            )}
-          </Card>
-        </Col>
-      </Row>
+            <Text type="secondary">
+              Silakan login kembali atau hubungi administrator
+            </Text>
+          </Empty>
+        </Card>
+      )}
     </div>
   );
 };
