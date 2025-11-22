@@ -27,9 +27,7 @@ export const OrdersList = () => {
   const apiUrl = useApiUrl();
   const { open } = useNotification();
   const invalidate = useInvalidate();
-  const [activeTab, setActiveTab] = useState<OrderStatus>(
-    "semua"
-  );
+  const [activeTab, setActiveTab] = useState<OrderStatus>("semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -60,6 +58,8 @@ export const OrdersList = () => {
     switch (status) {
       case "selesai":
         return "green";
+      case "dikirim":
+        return "blue";
       case "menunggu_verifikasi":
         return "orange";
       case "ditolak":
@@ -73,6 +73,8 @@ export const OrdersList = () => {
     switch (status) {
       case "selesai":
         return "Selesai";
+      case "dikirim":
+        return "Sedang Dikirim";
       case "menunggu_verifikasi":
         return "Menunggu";
       case "ditolak":
@@ -123,7 +125,7 @@ export const OrdersList = () => {
             type: "success",
             message: "Berhasil",
             description: `Order berhasil ${
-              status === "selesai" ? "disetujui" : "ditolak"
+              status === "dikirim" ? "disetujui dan sedang dikirim" : "ditolak"
             }`,
           });
         },
@@ -152,17 +154,16 @@ export const OrdersList = () => {
   };
 
   const handleApproveModalOk = () => {
-  Modal.confirm({
-    title: "Konfirmasi Persetujuan Order",
-    content: `Apakah Anda yakin ingin menyetujui order ${selectedOrder?.nomorOrder} atas nama ${selectedOrder?.user?.fullname}?`,
-    okText: "Ya, Setujui",
-    cancelText: "Batal",
-    onOk: () => {
-      submitVerifikasi(selectedOrder.idOrder, "selesai", catatanAdmin);
-    },
-  });
-};
-
+    Modal.confirm({
+      title: "Konfirmasi Persetujuan Order",
+      content: `Apakah Anda yakin ingin menyetujui order ${selectedOrder?.nomorOrder}? Status akan diubah menjadi "Sedang Dikirim".`,
+      okText: "Ya, Setujui & Kirim",
+      cancelText: "Batal",
+      onOk: () => {
+        submitVerifikasi(selectedOrder.idOrder, "dikirim", catatanAdmin);
+      },
+    });
+  };
 
   const handleModalCancel = () => {
     setIsModalOpen(false);
@@ -182,22 +183,11 @@ export const OrdersList = () => {
   };
 
   const tabItems = [
-    {
-      key: "semua",
-      label: "Semua Transaksi",
-    },
-    {
-      key: "menunggu_verifikasi",
-      label: "Menunggu",
-    },
-    {
-      key: "selesai",
-      label: "Disetujui",
-    },
-    {
-      key: "ditolak",
-      label: "Ditolak",
-    },
+    { key: "semua", label: "Semua Transaksi" },
+    { key: "menunggu_verifikasi", label: "Menunggu" },
+    { key: "dikirim", label: "Sedang Dikirim" },
+    { key: "selesai", label: "Selesai" },
+    { key: "ditolak", label: "Ditolak" },
   ];
 
   return (

@@ -50,6 +50,8 @@ export const OrdersShow = () => {
     switch (status) {
       case "selesai":
         return "green";
+      case "dikirim":
+        return "blue";
       case "menunggu_verifikasi":
         return "orange";
       case "ditolak":
@@ -63,6 +65,8 @@ export const OrdersShow = () => {
     switch (status) {
       case "selesai":
         return "Selesai";
+      case "dikirim":
+        return "Sedang Dikirim";
       case "menunggu_verifikasi":
         return "Menunggu Verifikasi";
       case "ditolak":

@@ -15,7 +15,11 @@ import {
   Progress,
   Alert,
 } from "antd";
-import { CreditCardOutlined, UploadOutlined } from "@ant-design/icons";
+import { 
+  CreditCardOutlined, 
+  UploadOutlined, 
+  CheckCircleOutlined 
+} from "@ant-design/icons";
 import { useApiUrl, useCustomMutation, useInvalidate } from "@refinedev/core";
 import { useNotification } from "@refinedev/core";
 import dayjs from "dayjs";
@@ -32,7 +36,7 @@ export default function CustomerOrdersList() {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadLoading, setUploadLoading] = useState(false);
 
-  // ✅ OCR states
+  // OCR states
   const [isValidating, setIsValidating] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [validationResult, setValidationResult] = useState<{
@@ -61,13 +65,16 @@ export default function CustomerOrdersList() {
   });
 
   const { mutate: uploadBukti } = useCustomMutation();
+  const { mutate: confirmDelivery } = useCustomMutation();
   const invalidate = useInvalidate();
 
-  // 🔹 Helper untuk warna status
+  // ✅ Update warna status
   const getStatusColor = (status: string) => {
     switch (status) {
       case "selesai":
         return "green";
+      case "dikirim":
+        return "blue";
       case "menunggu_verifikasi":
         return "orange";
       case "ditolak":
@@ -86,6 +93,8 @@ export default function CustomerOrdersList() {
     switch (status) {
       case "selesai":
         return "Selesai";
+      case "dikirim":
+        return "Sedang Dikirim";
       case "menunggu_verifikasi":
         return "Menunggu Verifikasi";
       case "ditolak":
@@ -101,7 +110,53 @@ export default function CustomerOrdersList() {
   };
 
   /**
-   * ✅ OCR Validation Function
+   * ✅ Konfirmasi pesanan diterima
+   */
+  const handleConfirmDelivery = (order: any) => {
+    Modal.confirm({
+      title: "Konfirmasi Penerimaan Pesanan",
+      content: (
+        <div>
+          <p>Apakah pesanan <strong>{order.nomorOrder}</strong> sudah Anda terima?</p>
+          <p style={{ color: "#666", fontSize: "14px" }}>
+            Dengan mengkonfirmasi ini, transaksi akan diselesaikan dan tidak dapat dibatalkan.
+          </p>
+        </div>
+      ),
+      okText: "Ya, Sudah Diterima",
+      cancelText: "Belum",
+      okButtonProps: { type: "primary" },
+      onOk: () => {
+        confirmDelivery(
+          {
+            url: `${apiUrl}/customer/orders/${order.idOrder}/confirm-delivery`,
+            method: "post",
+            values: {},
+          },
+          {
+            onSuccess: () => {
+              invalidate({ resource: "customer/orders", invalidates: ["list"] });
+              open?.({
+                type: "success",
+                message: "Berhasil",
+                description: "Terima kasih! Pesanan telah dikonfirmasi diterima.",
+              });
+            },
+            onError: (error) => {
+              open?.({
+                type: "error",
+                message: "Gagal",
+                description: error?.message || "Gagal mengkonfirmasi pesanan",
+              });
+            },
+          }
+        );
+      },
+    });
+  };
+
+  /**
+   * OCR Validation Function
    */
   const validatePaymentProof = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -186,9 +241,6 @@ export default function CustomerOrdersList() {
     });
   };
 
-  /**
-   * ✅ Handle File Change with OCR validation
-   */
   const handleFileChange = async ({ fileList: newList }: any) => {
     if (newList.length === 0) {
       setFileList([]);
@@ -226,7 +278,6 @@ export default function CustomerOrdersList() {
       return;
     }
 
-    // 🚫 Stop jika OCR tidak valid
     if (validationResult && !validationResult.isValid) {
       Modal.error({
         title: "Bukti Tidak Valid",
@@ -352,6 +403,7 @@ export default function CustomerOrdersList() {
             render={(_, record: any) => (
               <Space>
                 <ShowButton hideText size="small" recordItemId={record.idOrder} />
+                {/* ✅ Tombol Bayar (hanya untuk QRIS belum bayar) */}
                 {record.metodePembayaran === "qris" &&
                   !record.buktiPembayaran && (
                     <Button
@@ -363,6 +415,18 @@ export default function CustomerOrdersList() {
                       Bayar
                     </Button>
                   )}
+                {/* ✅ Tombol Konfirmasi Diterima (hanya untuk status "dikirim") */}
+                {record.statusPembayaran === "dikirim" && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => handleConfirmDelivery(record)}
+                    style={{ backgroundColor: "#52c41a" }}
+                  >
+                    Pesanan Selesai
+                  </Button>
+                )}
               </Space>
             )}
           />
@@ -371,207 +435,205 @@ export default function CustomerOrdersList() {
 
       {/* Modal Upload Bukti + OCR */}
       <Modal
-  title={<Title level={4}>Upload Bukti Pembayaran</Title>}
-  open={isModalOpen}
-  onCancel={() => {
-    setIsModalOpen(false);
-    setFileList([]);
-    setValidationResult(null);
-  }}
-  footer={null}
-  width={900}
->
-  {selectedOrder && (
-    <>
-      {/* 🔹 Ringkasan Order */}
-      <Card
-        size="small"
-        style={{ marginBottom: 24, background: "#fafafa" }}
-        title={`Detail Order - ${selectedOrder.nomorOrder}`}
+        title={<Title level={4}>Upload Bukti Pembayaran</Title>}
+        open={isModalOpen}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setFileList([]);
+          setValidationResult(null);
+        }}
+        footer={null}
+        width={900}
       >
-        <p>
-          <Text strong>Tanggal:</Text>{" "}
-          {dayjs(selectedOrder.tanggalOrder).format("DD MMM YYYY HH:mm")}
-        </p>
-        <p>
-          <Text strong>Metode Pembayaran:</Text>{" "}
-          {selectedOrder.metodePembayaran?.toUpperCase()}
-        </p>
-        <p>
-          <Text strong>Total:</Text>{" "}
-          {new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-            minimumFractionDigits: 0,
-          }).format(selectedOrder.totalHarga)}
-        </p>
-
-        <Table
-          dataSource={selectedOrder.orderDetails || []}
-          size="small"
-          pagination={false}
-          rowKey={(item) => item.id}
-          style={{ marginTop: 16 }}
-        >
-          <Table.Column
-            title="produk"
-            dataIndex={["namaProduk"]}
-            render={(v: string) => v || "-"}
-          />
-          <Table.Column
-            title="Jumlah"
-            dataIndex="jumlah"
-            align="center"
-            render={(v: number) => v || 0}
-          />
-          <Table.Column
-            title="Harga Satuan"
-            dataIndex={["hargaSatuan"]}
-            align="right"
-            render={(v: number) =>
-              new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0,
-              }).format(v)
-            }
-          />
-          <Table.Column
-            title="Subtotal"
-            dataIndex="subtotal"
-            align="right"
-            render={(v: number) =>
-              new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0,
-              }).format(v)
-            }
-          />
-        </Table>
-      </Card>
-    </>
-  )}
-
-  <div style={{ display: "flex", gap: 24 }}>
-    {/* QRIS Side */}
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#f5f5f5",
-        borderRadius: 8,
-        padding: 24,
-      }}
-    >
-      <Text strong style={{ marginBottom: 12 }}>
-        Scan QRIS untuk Pembayaran
-      </Text>
-      <Image
-        src="/images/qris.png"
-        alt="QRIS"
-        width={220}
-        height={220}
-        style={{ objectFit: "contain" }}
-        preview={false}
-      />
-      <Text type="secondary" style={{ marginTop: 12, textAlign: "center" }}>
-        Gunakan aplikasi pembayaran Anda untuk scan kode QR di atas.
-      </Text>
-    </div>
-
-    {/* Upload + OCR Validation Side */}
-    <div style={{ flex: 1 }}>
-      <Alert
-        type="info"
-        showIcon
-        message="Validasi Otomatis"
-        description="Gambar bukti akan diperiksa otomatis (kata kunci: Berhasil, Transfer, Febyan, dll). Pastikan gambar jelas."
-        style={{ marginBottom: 16 }}
-      />
-      <Upload
-        listType="picture-card"
-        fileList={fileList}
-        beforeUpload={() => false}
-        onChange={handleFileChange}
-        maxCount={1}
-        accept="image/*"
-        disabled={isValidating}
-      >
-        {fileList.length < 1 && !isValidating && (
-          <div>
-            <UploadOutlined />
-            <div style={{ marginTop: 8 }}>Upload Bukti</div>
-          </div>
-        )}
-      </Upload>
-
-      {isValidating && (
-        <div style={{ marginBottom: 16 }}>
-          <Text strong>Memvalidasi bukti pembayaran...</Text>
-          <Progress percent={ocrProgress} status="active" />
-        </div>
-      )}
-
-      {validationResult && !isValidating && (
-        <Alert
-          showIcon
-          type={validationResult.isValid ? "success" : "error"}
-          message={
-            validationResult.isValid
-              ? "Bukti Pembayaran Valid"
-              : "Bukti Tidak Valid"
-          }
-          description={
-            <>
-              <p>{validationResult.message}</p>
-              {validationResult.foundKeywords.length > 0 && (
-                <p>
-                  <strong>Kata kunci:</strong>{" "}
-                  {validationResult.foundKeywords.join(", ")}
-                </p>
-              )}
-              <p style={{ fontSize: 12, color: "#666" }}>
-                Confidence: {validationResult.confidence.toFixed(2)}%
+        {selectedOrder && (
+          <>
+            <Card
+              size="small"
+              style={{ marginBottom: 24, background: "#fafafa" }}
+              title={`Detail Order - ${selectedOrder.nomorOrder}`}
+            >
+              <p>
+                <Text strong>Tanggal:</Text>{" "}
+                {dayjs(selectedOrder.tanggalOrder).format("DD MMM YYYY HH:mm")}
               </p>
-            </>
-          }
-        />
-      )}
+              <p>
+                <Text strong>Metode Pembayaran:</Text>{" "}
+                {selectedOrder.metodePembayaran?.toUpperCase()}
+              </p>
+              <p>
+                <Text strong>Total:</Text>{" "}
+                {new Intl.NumberFormat("id-ID", {
+                  style: "currency",
+                  currency: "IDR",
+                  minimumFractionDigits: 0,
+                }).format(selectedOrder.totalHarga)}
+              </p>
 
-      <div style={{ textAlign: "right", marginTop: 24 }}>
-        <Button
-          onClick={() => {
-            setIsModalOpen(false);
-            setFileList([]);
-            setValidationResult(null);
-          }}
-          style={{ marginRight: 8 }}
-          disabled={isValidating || uploadLoading}
-        >
-          Batal
-        </Button>
-        <Button
-          type="primary"
-          icon={<UploadOutlined />}
-          onClick={handleUploadBukti}
-          loading={uploadLoading}
-          disabled={
-            fileList.length === 0 ||
-            isValidating ||
-            Boolean(validationResult && !validationResult.isValid)
-          }
-        >
-          Upload
-        </Button>
-      </div>
-    </div>
-  </div>
-</Modal>
+              <Table
+                dataSource={selectedOrder.orderDetails || []}
+                size="small"
+                pagination={false}
+                rowKey={(item) => item.id}
+                style={{ marginTop: 16 }}
+              >
+                <Table.Column
+                  title="Produk"
+                  dataIndex={["namaProduk"]}
+                  render={(v: string) => v || "-"}
+                />
+                <Table.Column
+                  title="Jumlah"
+                  dataIndex="jumlah"
+                  align="center"
+                  render={(v: number) => v || 0}
+                />
+                <Table.Column
+                  title="Harga Satuan"
+                  dataIndex={["hargaSatuan"]}
+                  align="right"
+                  render={(v: number) =>
+                    new Intl.NumberFormat("id-ID", {
+                      style: "currency",
+                      currency: "IDR",
+                      minimumFractionDigits: 0,
+                    }).format(v)
+                  }
+                />
+                <Table.Column
+                  title="Subtotal"
+                  dataIndex="subtotal"
+                  align="right"
+                  render={(v: number) =>
+                    new Intl.NumberFormat("id-ID", {
+                      style: "currency",
+                      currency: "IDR",
+                      minimumFractionDigits: 0,
+                    }).format(v)
+                  }
+                />
+              </Table>
+            </Card>
+          </>
+        )}
 
+        <div style={{ display: "flex", gap: 24 }}>
+          {/* QRIS Side */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#f5f5f5",
+              borderRadius: 8,
+              padding: 24,
+            }}
+          >
+            <Text strong style={{ marginBottom: 12 }}>
+              Scan QRIS untuk Pembayaran
+            </Text>
+            <Image
+              src="/images/qris.png"
+              alt="QRIS"
+              width={220}
+              height={220}
+              style={{ objectFit: "contain" }}
+              preview={false}
+            />
+            <Text type="secondary" style={{ marginTop: 12, textAlign: "center" }}>
+              Gunakan aplikasi pembayaran Anda untuk scan kode QR di atas.
+            </Text>
+          </div>
+
+          {/* Upload + OCR Validation Side */}
+          <div style={{ flex: 1 }}>
+            <Alert
+              type="info"
+              showIcon
+              message="Validasi Otomatis"
+              description="Gambar bukti akan diperiksa otomatis (kata kunci: Berhasil, Transfer, Febyan, dll). Pastikan gambar jelas."
+              style={{ marginBottom: 16 }}
+            />
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={() => false}
+              onChange={handleFileChange}
+              maxCount={1}
+              accept="image/*"
+              disabled={isValidating}
+            >
+              {fileList.length < 1 && !isValidating && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Upload Bukti</div>
+                </div>
+              )}
+            </Upload>
+
+            {isValidating && (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong>Memvalidasi bukti pembayaran...</Text>
+                <Progress percent={ocrProgress} status="active" />
+              </div>
+            )}
+
+            {validationResult && !isValidating && (
+              <Alert
+                showIcon
+                type={validationResult.isValid ? "success" : "error"}
+                message={
+                  validationResult.isValid
+                    ? "Bukti Pembayaran Valid"
+                    : "Bukti Tidak Valid"
+                }
+                description={
+                  <>
+                    <p>{validationResult.message}</p>
+                    {validationResult.foundKeywords.length > 0 && (
+                      <p>
+                        <strong>Kata kunci:</strong>{" "}
+                        {validationResult.foundKeywords.join(", ")}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 12, color: "#666" }}>
+                      Confidence: {validationResult.confidence.toFixed(2)}%
+                    </p>
+                  </>
+                }
+              />
+            )}
+
+            <div style={{ textAlign: "right", marginTop: 24 }}>
+              <Button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setFileList([]);
+                  setValidationResult(null);
+                }}
+                style={{ marginRight: 8 }}
+                disabled={isValidating || uploadLoading}
+              >
+                Batal
+              </Button>
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={handleUploadBukti}
+                loading={uploadLoading}
+                disabled={
+                  fileList.length === 0 ||
+                  isValidating ||
+                  Boolean(validationResult && !validationResult.isValid)
+                }
+              >
+                Upload
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
