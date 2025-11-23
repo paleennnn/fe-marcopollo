@@ -79,7 +79,7 @@ export const authProviderClient: AuthProvider = {
           role: role || "customer",
         }),
       });
-      
+
       const data = await response.json();
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(data.message || "Register failed");
@@ -127,28 +127,28 @@ export const authProviderClient: AuthProvider = {
 
   // GET IDENTITY
   // src\providers\auth-provider\auth-provider client ts
-getIdentity: async () => {
-  const auth = localStorage.getItem("user");
-  if (auth) {
-    try {
-      const user = JSON.parse(auth);
-      return {
-        id: user.id,
-        username: user.username,
-        fullname: user.fullname,
-        email: user.email,
-        phone: user.phone,        
-        address: user.address,    
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      };
-    } catch {
-      return null;
+  getIdentity: async () => {
+    const auth = localStorage.getItem("users");
+    if (auth) {
+      try {
+        const user = JSON.parse(auth);
+        return {
+          id: user.id,
+          username: user.username,
+          fullname: user.fullname,
+          email: user.email,
+          phone: user.phone,
+          address: user.address,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      } catch {
+        return null;
+      }
     }
-  }
-  return null;
-},
+    return null;
+  },
 
   // ERROR HANDLING
   onError: async (error) => {

@@ -1,12 +1,26 @@
 "use client";
 
-import { Card, Col, Row, Statistic, Table, Empty, Skeleton, Button, Space, Tag, Alert } from "antd";
+import {
+  Card,
+  Col,
+  Row,
+  Statistic,
+  Table,
+  Empty,
+  Skeleton,
+  Button,
+  Space,
+  Tag,
+  Alert,
+} from "antd";
 import {
   ShoppingOutlined,
   ShoppingCartOutlined,
   UserOutlined,
   DollarOutlined,
   ArrowRightOutlined,
+  ThunderboltFilled,
+  CodeSandboxOutlined,
 } from "@ant-design/icons";
 import { FinanceComparison } from "@components/finance/finance-comparison";
 import { CustomerWallet } from "@components/customer/customer-wallet";
@@ -88,13 +102,17 @@ export const Dashboard = () => {
         console.log("🔄 Fetching dashboard stats for admin...");
 
         // Fetch semua data yang dibutuhkan
-        const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = await Promise.all([
-          fetch(`${apiUrl}/kambings`, { headers }),
-          fetch(`${apiUrl}/materials`, { headers }),
-          fetch(`${apiUrl}/users`, { headers }),
-          fetch(`${apiUrl}/orders`, { headers }),
-          fetch(`${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`, { headers }),
-        ]);
+        const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] =
+          await Promise.all([
+            fetch(`${apiUrl}/kambings`, { headers }),
+            fetch(`${apiUrl}/materials`, { headers }),
+            fetch(`${apiUrl}/users`, { headers }),
+            fetch(`${apiUrl}/orders`, { headers }),
+            fetch(
+              `${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`,
+              { headers }
+            ),
+          ]);
 
         console.log("Response statuses:", {
           kambings: kambingsRes.status,
@@ -108,14 +126,20 @@ export const Dashboard = () => {
         const materials = await materialsRes.json();
         const users = await usersRes.json();
         const orders = await ordersRes.json();
-        const finance = financeRes.ok ? await financeRes.json() : { data: null };
+        const finance = financeRes.ok
+          ? await financeRes.json()
+          : { data: null };
 
         console.log("📊 Finance response:", finance);
         console.log("📋 Raw orders response:", orders);
 
         // Handle responses
-        const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
-        const materialsData = Array.isArray(materials) ? materials : materials.data || [];
+        const kambingsData = Array.isArray(kambings)
+          ? kambings
+          : kambings.data || [];
+        const materialsData = Array.isArray(materials)
+          ? materials
+          : materials.data || [];
         const usersData = Array.isArray(users) ? users : users.data || [];
 
         // FIX: AdonisJS orders response format
@@ -135,11 +159,15 @@ export const Dashboard = () => {
         // Filter orders bulan ini yang selesai
         const ordersThisMonth = ordersData.filter((order: any) => {
           // Support berbagai format field name
-          const orderDate = order.tanggalVerifikasi || order.tanggal_verifikasi
-            ? dayjs(order.tanggalVerifikasi || order.tanggal_verifikasi)
-            : dayjs(order.tanggalOrder || order.tanggal_order || order.created_at);
+          const orderDate =
+            order.tanggalVerifikasi || order.tanggal_verifikasi
+              ? dayjs(order.tanggalVerifikasi || order.tanggal_verifikasi)
+              : dayjs(
+                  order.tanggalOrder || order.tanggal_order || order.created_at
+                );
 
-          const status = order.statusPembayaran || order.status_pembayaran || order.status;
+          const status =
+            order.statusPembayaran || order.status_pembayaran || order.status;
           const isThisMonth =
             orderDate.month() + 1 === currentMonth &&
             orderDate.year() === currentYear;
@@ -167,7 +195,8 @@ export const Dashboard = () => {
         setStats({
           totalKambing: kambingsData?.length || 0,
           totalMaterial: materialsData?.length || 0,
-          totalCustomer: usersData?.filter((u: any) => u.role === "customer").length || 0,
+          totalCustomer:
+            usersData?.filter((u: any) => u.role === "customer").length || 0,
           totalOrdersBulanIni: ordersThisMonth.length,
           totalRevenueBulanIni: totalRevenue,
           totalProfitBulanIni: totalProfit,
@@ -230,7 +259,7 @@ export const Dashboard = () => {
                 <Statistic
                   title="Total Kambing"
                   value={stats?.totalKambing || 0}
-                  prefix={<ShoppingOutlined />}
+                  prefix={<ThunderboltFilled />}
                   valueStyle={{ color: "#1890ff" }}
                 />
               </Card>
@@ -241,7 +270,7 @@ export const Dashboard = () => {
                 <Statistic
                   title="Total Material"
                   value={stats?.totalMaterial || 0}
-                  prefix={<ShoppingOutlined />}
+                  prefix={<CodeSandboxOutlined />}
                   valueStyle={{ color: "#52c41a" }}
                 />
               </Card>
@@ -420,9 +449,10 @@ export const Dashboard = () => {
                     columns={[
                       {
                         title: "No. Order",
-                        dataIndex: ["idOrder"],
-                        key: "idOrder",
-                        render: (text) => <Text strong>#{text}</Text>,
+                        key: "no",
+                        render: (_text, _record, index) => (
+                          <Text strong>#{index + 1}</Text>
+                        ),
                       },
                       {
                         title: "Customer",
@@ -442,7 +472,8 @@ export const Dashboard = () => {
                         title: "Tanggal",
                         dataIndex: "tanggalOrder",
                         key: "tanggalOrder",
-                        render: (date) => date ? dayjs(date).format("DD MMM YYYY") : "-",
+                        render: (date) =>
+                          date ? dayjs(date).format("DD MMM YYYY") : "-",
                       },
                       {
                         title: "Status",
@@ -454,7 +485,9 @@ export const Dashboard = () => {
                             menunggu_verifikasi: "orange",
                             ditolak: "red",
                           };
-                          return <Tag color={colors[status] || "blue"}>{status}</Tag>;
+                          return (
+                            <Tag color={colors[status] || "blue"}>{status}</Tag>
+                          );
                         },
                       },
                     ]}
@@ -483,8 +516,8 @@ export const Dashboard = () => {
       {/* ❌ JIKA ROLE TIDAK DIKENALI */}
       {!isAdmin && !isCustomer && (
         <Card>
-          <Empty 
-            description="Role pengguna tidak dikenali" 
+          <Empty
+            description="Role pengguna tidak dikenali"
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
             <Text type="secondary">

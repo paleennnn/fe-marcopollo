@@ -80,15 +80,9 @@ export const accessControlProvider: AccessControlProvider = {
       return { can: true };
     }
 
-    // 🐟 LELES
+    // 🐟 LELES - ADMIN ONLY (SEMUA AKSI)
     if (resource === "leles") {
-      if (action === "create" || action === "edit" || action === "delete") {
-        return { can: isAdmin(user) };
-      }
-      if (action === "list" || action === "show") {
-        return { can: true };
-      }
-      return { can: true };
+      return { can: isAdmin(user) };
     }
 
     // 👥 USERS - Admin Only

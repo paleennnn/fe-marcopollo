@@ -34,6 +34,7 @@ import {
   CheckSquareFilled,
   ShoppingCartOutlined,
   FileTextOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 
@@ -97,6 +98,7 @@ export default function RootLayout({
                         meta: {
                           label: "My Profile",
                           hide: false,
+                          icon: <UserOutlined style={{ fontSize: "1.2em" }} />,
                         },
                       },
                       {
@@ -116,7 +118,11 @@ export default function RootLayout({
                         meta: {
                           canDelete: true,
                           label: "Pengguna",
-                          icon: <UserOutlined style={{ fontSize: "1.2em" }} />,
+                          icon: (
+                            <UsergroupAddOutlined
+                              style={{ fontSize: "1.2em" }}
+                            />
+                          ),
                         },
                       },
                       {
@@ -215,7 +221,7 @@ export default function RootLayout({
                           canDelete: true,
                           label: "Transaksi Pesanan",
                           icon: (
-                            <CheckSquareFilled style={{ fontSize: "1.2em" }} />
+                            <FileTextOutlined style={{ fontSize: "1.2em" }} />
                           ),
                         },
                       },
