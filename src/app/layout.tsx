@@ -37,6 +37,7 @@ import {
   UsergroupAddOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
+import { ColorModeContextProvider } from "@contexts/color-mode";
 
 export const metadata: Metadata = {
   title: "Marcopollo Group",
@@ -58,7 +59,7 @@ export default function RootLayout({
   const theme = cookieStore.get("theme");
 
   return (
-    <html lang="en" className="light">
+    <html lang="en">
       {/* <head>
         <meta
           httpEquiv="Content-Security-Policy"
@@ -66,6 +67,7 @@ export default function RootLayout({
         />
       </head> */}
       <body>
+        <ColorModeContextProvider defaultMode={theme?.value}>
         <ConfigProvider
           theme={{
             token: {
@@ -241,6 +243,7 @@ export default function RootLayout({
             </RefineKbarProvider>
           </Suspense>
         </ConfigProvider>
+      </ColorModeContextProvider>
       </body>
     </html>
   );

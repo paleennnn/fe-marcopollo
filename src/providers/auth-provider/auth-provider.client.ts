@@ -21,17 +21,16 @@ export const authProviderClient: AuthProvider = {
 
       if (!response.ok) throw new Error("Login failed");
 
-      const userData = await response.json();
-      const actualToken = userData.token.token;
+      const data = await response.json();
+      const actualToken = data.token.token;
 
-      // Enkripsi token
+      // Encrypt token
       const encryptedToken = await new SignJWT({ token: actualToken })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
         .setExpirationTime("1d")
         .sign(secret);
 
-      // Simpan token di cookie
       Cookies.set("auth", encryptedToken, {
         expires: 30,
         path: "/",
@@ -41,10 +40,24 @@ export const authProviderClient: AuthProvider = {
 
       localStorage.setItem("token", actualToken);
 
-      // Simpan user tanpa token di localStorage
-      const userDataWithoutToken = { ...userData };
-      delete userDataWithoutToken.token;
-      localStorage.setItem("user", JSON.stringify(userDataWithoutToken));
+      // SIMPAN USER DENGAN FORMAT BENAR
+      const u = data.user;
+
+      const formattedUser = {
+        id: u.id,
+        name: u.fullname ?? u.username,
+        fullname: u.fullname,
+        username: u.username,
+        avatar: `https://ui-avatars.com/api/?name=${u.fullname}`,
+        role: u.role,
+        email: u.email,
+        phone: u.phone,
+        address: u.address,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      };
+
+      localStorage.setItem("user", JSON.stringify(formattedUser));
 
       return { success: true, redirectTo: "/dashboard" };
     } catch {
@@ -128,26 +141,24 @@ export const authProviderClient: AuthProvider = {
   // GET IDENTITY
   // src\providers\auth-provider\auth-provider client ts
   getIdentity: async () => {
-    const auth = localStorage.getItem("users");
-    if (auth) {
-      try {
-        const user = JSON.parse(auth);
-        return {
-          id: user.id,
-          username: user.username,
-          fullname: user.fullname,
-          email: user.email,
-          phone: user.phone,
-          address: user.address,
-          role: user.role,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        };
-      } catch {
-        return null;
-      }
+    const auth = localStorage.getItem("user"); // FIXED KEY
+    if (!auth) return null;
+    try {
+      const user = JSON.parse(auth);
+      return {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        role: user.role,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    } catch {
+      return null;
     }
-    return null;
   },
 
   // ERROR HANDLING

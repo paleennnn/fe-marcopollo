@@ -1,6 +1,5 @@
 "use client";
 
-import { RefineThemes } from "@refinedev/antd";
 import { App as AntdApp, ConfigProvider, theme } from "antd";
 import Cookies from "js-cookie";
 import React, {
@@ -12,7 +11,7 @@ import React, {
 
 type ColorModeContextType = {
   mode: string;
-  setMode: (mode: string) => void;
+  setMode: (checked: boolean) => void;
 };
 
 export const ColorModeContext = createContext<ColorModeContextType>(
@@ -27,42 +26,41 @@ export const ColorModeContextProvider: React.FC<
   PropsWithChildren<ColorModeContextProviderProps>
 > = ({ children, defaultMode }) => {
   const [isMounted, setIsMounted] = useState(false);
-  const [mode, setMode] = useState(defaultMode || "light");
+  const [mode, setModeState] = useState(defaultMode || "light");
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (isMounted) {
-      const theme = Cookies.get("theme") || "light";
-      setMode(theme);
-    }
-  }, [isMounted]);
+    if (!isMounted) return;
 
-  const setColorMode = () => {
-    if (mode === "light") {
-      setMode("dark");
-      Cookies.set("theme", "dark");
-    } else {
-      setMode("light");
-      Cookies.set("theme", "light");
-    }
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(mode);
+  }, [mode, isMounted]);
+
+  const setColorMode = (checked: boolean) => {
+    const newMode = checked ? "dark" : "light";
+    setModeState(newMode);
+    Cookies.set("theme", newMode);
+    document.documentElement.classList.add("theme-fade");
+    setTimeout(() => {
+      document.documentElement.classList.remove("theme-fade");
+    }, 300);
+
+    // Tambah kelas animasi fade
+    document.body.classList.add("theme-fade");
+    setTimeout(() => {
+      document.body.classList.remove("theme-fade");
+    }, 300);
   };
 
   const { darkAlgorithm, defaultAlgorithm } = theme;
 
   return (
-    <ColorModeContext.Provider
-      value={{
-        setMode: setColorMode,
-        mode,
-      }}
-    >
+    <ColorModeContext.Provider value={{ mode, setMode: setColorMode }}>
       <ConfigProvider
-        // you can change the theme colors here. example: ...RefineThemes.Magenta,
         theme={{
-          ...RefineThemes.Blue,
           algorithm: mode === "light" ? defaultAlgorithm : darkAlgorithm,
         }}
       >

@@ -50,7 +50,7 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
         <Switch
           checkedChildren="🌛"
           unCheckedChildren="🔆"
-          onChange={() => setMode(mode === "light" ? "dark" : "light")}
+          onChange={setMode}
           defaultChecked={mode === "dark"}
         />
         {(user?.name || user?.avatar) && (

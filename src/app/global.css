@@ -186,3 +186,7 @@
     z-index: 3;
     padding: 1.5rem;
 }
+
+.theme-fade {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

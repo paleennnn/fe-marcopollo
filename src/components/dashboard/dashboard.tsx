@@ -72,10 +72,6 @@ export const Dashboard = () => {
   const isAdmin = userRole === "admin";
   const isCustomer = userRole === "customer";
 
-  console.log("👤 User Role:", userRole);
-  console.log("🛡️ Is Admin:", isAdmin);
-  console.log("👥 Is Customer:", isCustomer);
-
   // Fetch stats - HANYA UNTUK ADMIN
   useEffect(() => {
     const fetchStats = async () => {
