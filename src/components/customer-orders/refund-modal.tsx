@@ -1,12 +1,12 @@
-import React, { useState } from 'react'
-import { Modal, Form, Input, Button, message } from 'antd'
-import { useCreate } from '@refinedev/core'
+import React, { useState } from "react";
+import { Modal, Form, Input, Button, message } from "antd";
+import { useCreate } from "@refinedev/core";
 
 interface RefundModalProps {
-  visible: boolean
-  onCancel: () => void
-  orderDetailId: number | null
-  onSuccess: () => void
+  visible: boolean;
+  onCancel: () => void;
+  orderDetailId: number | null;
+  onSuccess: () => void;
 }
 
 export const RefundModal: React.FC<RefundModalProps> = ({
@@ -15,41 +15,41 @@ export const RefundModal: React.FC<RefundModalProps> = ({
   orderDetailId,
   onSuccess,
 }) => {
-  const [form] = Form.useForm()
-  const { mutate: createRefund, isLoading } = useCreate()
+  const [form] = Form.useForm();
+  const { mutate: createRefund, isLoading } = useCreate();
 
   const handleOk = () => {
     form.validateFields().then((values) => {
-      if (!orderDetailId) return
+      if (!orderDetailId) return;
 
       createRefund(
         {
-          resource: 'customer/refunds',
+          resource: "customer/refunds",
           values: {
             order_detail_id: orderDetailId,
             alasan: values.alasan,
           },
           successNotification: {
-            message: 'Pengajuan refund berhasil',
-            description: 'Permintaan Anda sedang diproses oleh admin.',
-            type: 'success',
+            message: "Pengajuan refund berhasil",
+            description: "Permintaan Anda sedang diproses oleh admin.",
+            type: "success",
           },
           errorNotification: (error: any) => ({
-            message: 'Gagal mengajukan refund',
-            description: error?.response?.data?.message || 'Terjadi kesalahan',
-            type: 'error',
+            message: "Gagal mengajukan refund",
+            description: error?.response?.data?.message || "Terjadi kesalahan",
+            type: "error",
           }),
         },
         {
           onSuccess: () => {
-            form.resetFields()
-            onSuccess()
-            onCancel()
+            form.resetFields();
+            onSuccess();
+            onCancel();
           },
         }
-      )
-    })
-  }
+      );
+    });
+  };
 
   return (
     <Modal
@@ -66,8 +66,8 @@ export const RefundModal: React.FC<RefundModalProps> = ({
           name="alasan"
           label="Alasan Pengembalian"
           rules={[
-            { required: true, message: 'Mohon isi alasan pengembalian' },
-            { min: 10, message: 'Alasan minimal 10 karakter' },
+            { required: true, message: "Mohon isi alasan pengembalian" },
+            { min: 10, message: "Alasan minimal 10 karakter" },
           ]}
         >
           <Input.TextArea
@@ -77,5 +77,5 @@ export const RefundModal: React.FC<RefundModalProps> = ({
         </Form.Item>
       </Form>
     </Modal>
-  )
-}
+  );
+};

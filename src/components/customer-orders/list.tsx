@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { List, useTable, ShowButton } from '@refinedev/antd'
+import { useState } from "react";
+import { List, useTable, ShowButton } from "@refinedev/antd";
 import {
   Table,
   Space,
@@ -15,232 +15,244 @@ import {
   Progress,
   Alert,
   Tabs,
-} from 'antd'
+} from "antd";
 import {
   CreditCardOutlined,
   UploadOutlined,
   CheckCircleOutlined,
   DownOutlined,
   UpOutlined,
-} from '@ant-design/icons'
-import { useApiUrl, useCustomMutation, useInvalidate } from '@refinedev/core'
-import { useNotification } from '@refinedev/core'
-import dayjs from 'dayjs'
-import Tesseract from 'tesseract.js'
-import type { UploadFile } from 'antd'
-import { RefundModal } from './refund-modal'
-import { CustomerRefundsList } from '../customer-refunds'
+} from "@ant-design/icons";
+import { useApiUrl, useCustomMutation, useInvalidate } from "@refinedev/core";
+import { useNotification } from "@refinedev/core";
+import dayjs from "dayjs";
+import Tesseract from "tesseract.js";
+import type { UploadFile } from "antd";
+import { RefundModal } from "./refund-modal";
+import { CustomerRefundsList } from "../customer-refunds";
 
-const { Text, Title } = Typography
+const { Text, Title } = Typography;
 
 type OrderStatus =
-  | 'semua'
-  | 'menunggu_verifikasi'
-  | 'dikirim'
-  | 'selesai'
-  | 'ditolak'
-  | 'pengembalian'
+  | "semua"
+  | "menunggu_verifikasi"
+  | "dikirim"
+  | "selesai"
+  | "ditolak"
+  | "pengembalian";
 
 export default function CustomerOrdersList() {
-  const apiUrl = useApiUrl()
-  const { open } = useNotification()
-  const [activeTab, setActiveTab] = useState<OrderStatus>('semua')
+  const apiUrl = useApiUrl();
+  const { open } = useNotification();
+  const [activeTab, setActiveTab] = useState<OrderStatus>("semua");
 
   // Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Refund States
-  const [isRefundModalVisible, setIsRefundModalVisible] = useState(false)
-  const [selectedOrderDetailId, setSelectedOrderDetailId] = useState<number | null>(null)
+  const [isRefundModalVisible, setIsRefundModalVisible] = useState(false);
+  const [selectedOrderDetailId, setSelectedOrderDetailId] = useState<
+    number | null
+  >(null);
 
   // Upload States
-  const [fileList, setFileList] = useState<UploadFile[]>([])
-  const [uploadLoading, setUploadLoading] = useState(false)
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   // OCR states
-  const [isValidating, setIsValidating] = useState(false)
-  const [ocrProgress, setOcrProgress] = useState(0)
+  const [isValidating, setIsValidating] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [validationResult, setValidationResult] = useState<{
-    isValid: boolean
-    foundKeywords: string[]
-    confidence: number
-    message: string
-  } | null>(null)
+    isValid: boolean;
+    foundKeywords: string[];
+    confidence: number;
+    message: string;
+  } | null>(null);
 
   const REQUIRED_KEYWORDS = [
-    'berhasil',
-    'selesai',
-    'sukses',
-    'success',
-    'febyan valentino',
-    'febyan',
-    'valentino',
-    'transfer',
-    'pembayaran',
-  ]
+    "berhasil",
+    "selesai",
+    "sukses",
+    "success",
+    "febyan valentino",
+    "febyan",
+    "valentino",
+    "transfer",
+    "pembayaran",
+  ];
 
   const { tableProps } = useTable({
-    resource: 'customer/orders',
+    resource: "customer/orders",
     syncWithLocation: true,
     queryOptions: {
       refetchOnWindowFocus: true,
-      enabled: activeTab !== 'pengembalian', // Don't fetch orders when in refund tab
+      enabled: activeTab !== "pengembalian", // Don't fetch orders when in refund tab
     },
     filters: {
       permanent:
-        activeTab === 'semua' || activeTab === 'pengembalian'
+        activeTab === "semua" || activeTab === "pengembalian"
           ? []
           : [
               {
-                field: 'status',
-                operator: 'eq',
+                field: "status",
+                operator: "eq",
                 value: activeTab,
               },
             ],
     },
-  })
+  });
 
-  const { mutate: uploadBukti } = useCustomMutation()
-  const { mutate: confirmDelivery } = useCustomMutation()
-  const invalidate = useInvalidate()
+  const { mutate: uploadBukti } = useCustomMutation();
+  const { mutate: confirmDelivery } = useCustomMutation();
+  const invalidate = useInvalidate();
 
   // ✅ Update warna status
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'selesai':
-        return 'green'
-      case 'dikirim':
-        return 'blue'
-      case 'menunggu_verifikasi':
-        return 'orange'
-      case 'ditolak':
-        return 'red'
+      case "selesai":
+        return "green";
+      case "dikirim":
+        return "blue";
+      case "menunggu_verifikasi":
+        return "orange";
+      case "ditolak":
+        return "red";
       default:
-        return 'blue'
+        return "blue";
     }
-  }
+  };
 
   const getStatusLabel = (
     status: string,
     metodePembayaran: string,
     buktiPembayaran: string | null
   ) => {
-    if (metodePembayaran === 'qris' && !buktiPembayaran) return 'Belum Bayar'
+    if (metodePembayaran === "qris" && !buktiPembayaran) return "Belum Bayar";
     switch (status) {
-      case 'selesai':
-        return 'Selesai'
-      case 'dikirim':
-        return 'Sedang Dikirim'
-      case 'menunggu_verifikasi':
-        return 'Menunggu Verifikasi'
-      case 'ditolak':
-        return 'Ditolak'
+      case "selesai":
+        return "Selesai";
+      case "dikirim":
+        return "Sedang Dikirim";
+      case "menunggu_verifikasi":
+        return "Menunggu Verifikasi";
+      case "ditolak":
+        return "Ditolak";
       default:
-        return status
+        return status;
     }
-  }
+  };
 
   const handleBayar = (order: any) => {
-    setSelectedOrder(order)
-    setIsModalOpen(true)
-  }
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
 
   const handleRefundClick = (orderDetailId: number) => {
-    setSelectedOrderDetailId(orderDetailId)
-    setIsRefundModalVisible(true)
-  }
+    setSelectedOrderDetailId(orderDetailId);
+    setIsRefundModalVisible(true);
+  };
 
   // Check if refund is available (within 7 days of completion)
   const isRefundAvailable = (tanggalSelesai: string | null) => {
-    if (!tanggalSelesai) return false
-    const diffDays = dayjs().diff(dayjs(tanggalSelesai), 'day')
-    return diffDays <= 7
-  }
+    if (!tanggalSelesai) return false;
+    const diffDays = dayjs().diff(dayjs(tanggalSelesai), "day");
+    return diffDays <= 7;
+  };
 
   /**
    * ✅ Konfirmasi pesanan diterima
    */
   const handleConfirmDelivery = (order: any) => {
     Modal.confirm({
-      title: 'Konfirmasi Penerimaan Pesanan',
+      title: "Konfirmasi Penerimaan Pesanan",
       content: (
         <div>
           <p>
-            Apakah pesanan <strong>{order.nomorOrder}</strong> sudah Anda terima?
+            Apakah pesanan <strong>{order.nomorOrder}</strong> sudah Anda
+            terima?
           </p>
-          <p style={{ color: '#666', fontSize: '14px' }}>
-            Dengan mengkonfirmasi ini, transaksi akan diselesaikan dan tidak dapat dibatalkan.
+          <p style={{ color: "#666", fontSize: "14px" }}>
+            Dengan mengkonfirmasi ini, transaksi akan diselesaikan dan tidak
+            dapat dibatalkan.
           </p>
         </div>
       ),
-      okText: 'Ya, Sudah Diterima',
-      cancelText: 'Belum',
-      okButtonProps: { type: 'primary' },
+      okText: "Ya, Sudah Diterima",
+      cancelText: "Belum",
+      okButtonProps: { type: "primary" },
       onOk: () => {
         confirmDelivery(
           {
             url: `${apiUrl}/customer/orders/${order.idOrder}/confirm-delivery`,
-            method: 'post',
+            method: "post",
             values: {},
           },
           {
             onSuccess: () => {
-              invalidate({ resource: 'customer/orders', invalidates: ['list'] })
+              invalidate({
+                resource: "customer/orders",
+                invalidates: ["list"],
+              });
               open?.({
-                type: 'success',
-                message: 'Berhasil',
-                description: 'Terima kasih! Pesanan telah dikonfirmasi diterima.',
-              })
+                type: "success",
+                message: "Berhasil",
+                description:
+                  "Terima kasih! Pesanan telah dikonfirmasi diterima.",
+              });
             },
             onError: (error) => {
               open?.({
-                type: 'error',
-                message: 'Gagal',
-                description: error?.message || 'Gagal mengkonfirmasi pesanan',
-              })
+                type: "error",
+                message: "Gagal",
+                description: error?.message || "Gagal mengkonfirmasi pesanan",
+              });
             },
           }
-        )
+        );
       },
-    })
-  }
+    });
+  };
 
   /**
    * OCR Validation Function
    */
   const validatePaymentProof = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
-      setIsValidating(true)
-      setOcrProgress(0)
-      setValidationResult(null)
+      setIsValidating(true);
+      setOcrProgress(0);
+      setValidationResult(null);
 
-      const imageUrl = URL.createObjectURL(file)
+      const imageUrl = URL.createObjectURL(file);
 
-      Tesseract.recognize(imageUrl, 'ind+eng', {
+      Tesseract.recognize(imageUrl, "ind+eng", {
         logger: (m) => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.round(m.progress * 100))
+          if (m.status === "recognizing text") {
+            setOcrProgress(Math.round(m.progress * 100));
           }
         },
       })
         .then(({ data: { text, confidence } }) => {
-          const normalized = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+          const normalized = text.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
           const foundKeywords = REQUIRED_KEYWORDS.filter((kw) =>
             normalized.includes(kw.toLowerCase())
-          )
-          const hasNumbers = /\d{3,}/.test(normalized)
+          );
+          const hasNumbers = /\d{3,}/.test(normalized);
 
-          const isValid = (foundKeywords.length >= 1 || hasNumbers) && confidence > 30
+          const isValid =
+            (foundKeywords.length >= 1 || hasNumbers) && confidence > 30;
 
-          let message = ''
+          let message = "";
           if (!isValid) {
-            if (confidence <= 30) message = 'Gambar tidak jelas, akan diperiksa manual oleh admin.'
+            if (confidence <= 30)
+              message = "Gambar tidak jelas, akan diperiksa manual oleh admin.";
             else if (foundKeywords.length === 0 && !hasNumbers)
               message =
-                'Tidak ditemukan kata kunci pembayaran valid (Berhasil, Transfer, Febyan, atau nominal).'
+                "Tidak ditemukan kata kunci pembayaran valid (Berhasil, Transfer, Febyan, atau nominal).";
           } else {
-            message = `Bukti pembayaran valid. Ditemukan: ${foundKeywords.join(', ')}${hasNumbers ? ', nominal transfer' : ''}`
+            message = `Bukti pembayaran valid. Ditemukan: ${foundKeywords.join(
+              ", "
+            )}${hasNumbers ? ", nominal transfer" : ""}`;
           }
 
           setValidationResult({
@@ -248,132 +260,133 @@ export default function CustomerOrdersList() {
             foundKeywords,
             confidence,
             message,
-          })
+          });
 
-          setIsValidating(false)
-          URL.revokeObjectURL(imageUrl)
+          setIsValidating(false);
+          URL.revokeObjectURL(imageUrl);
 
           if (confidence <= 30) {
             Modal.warning({
-              title: 'Gambar Kurang Jelas',
+              title: "Gambar Kurang Jelas",
               content:
-                'OCR tidak bisa membaca dengan baik. Upload tetap dilanjutkan, admin akan cek manual.',
-              okText: 'Lanjutkan Upload',
+                "OCR tidak bisa membaca dengan baik. Upload tetap dilanjutkan, admin akan cek manual.",
+              okText: "Lanjutkan Upload",
               onOk: () => resolve(true),
-            })
-            return
+            });
+            return;
           }
 
           if (!isValid) {
             Modal.error({
-              title: 'Bukti Tidak Valid',
+              title: "Bukti Tidak Valid",
               content: message,
-              okText: 'Mengerti',
-            })
-            resolve(false)
-            return
+              okText: "Mengerti",
+            });
+            resolve(false);
+            return;
           }
 
-          resolve(true)
+          resolve(true);
         })
         .catch(() => {
-          setIsValidating(false)
+          setIsValidating(false);
           Modal.warning({
-            title: 'Gagal Membaca Gambar',
+            title: "Gagal Membaca Gambar",
             content:
-              'Tidak dapat melakukan validasi otomatis. Upload akan diteruskan untuk dicek manual.',
-            okText: 'Lanjutkan Upload',
+              "Tidak dapat melakukan validasi otomatis. Upload akan diteruskan untuk dicek manual.",
+            okText: "Lanjutkan Upload",
             onOk: () => resolve(true),
-          })
-        })
-    })
-  }
+          });
+        });
+    });
+  };
 
   const handleFileChange = async ({ fileList: newList }: any) => {
     if (newList.length === 0) {
-      setFileList([])
-      setValidationResult(null)
-      return
+      setFileList([]);
+      setValidationResult(null);
+      return;
     }
 
-    const file = newList[0].originFileObj as File
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    const file = newList[0].originFileObj as File;
+    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     if (!validTypes.includes(file.type)) {
       open?.({
-        type: 'error',
-        message: 'Format Tidak Valid',
-        description: 'Hanya JPG, JPEG, dan PNG diperbolehkan.',
-      })
-      return
+        type: "error",
+        message: "Format Tidak Valid",
+        description: "Hanya JPG, JPEG, dan PNG diperbolehkan.",
+      });
+      return;
     }
 
-    setFileList(newList)
-    const isValid = await validatePaymentProof(file)
+    setFileList(newList);
+    const isValid = await validatePaymentProof(file);
 
     if (!isValid) {
-      setFileList([])
-      setValidationResult(null)
+      setFileList([]);
+      setValidationResult(null);
     }
-  }
+  };
 
   const handleUploadBukti = () => {
     if (fileList.length === 0) {
       open?.({
-        type: 'error',
-        message: 'Peringatan',
-        description: 'Pilih file bukti pembayaran terlebih dahulu',
-      })
-      return
+        type: "error",
+        message: "Peringatan",
+        description: "Pilih file bukti pembayaran terlebih dahulu",
+      });
+      return;
     }
 
     if (validationResult && !validationResult.isValid) {
       Modal.error({
-        title: 'Bukti Tidak Valid',
+        title: "Bukti Tidak Valid",
         content: validationResult.message,
-        okText: 'Mengerti',
-      })
-      return
+        okText: "Mengerti",
+      });
+      return;
     }
 
-    const formData = new FormData()
-    formData.append('bukti_pembayaran', fileList[0].originFileObj as Blob)
+    const formData = new FormData();
+    formData.append("bukti_pembayaran", fileList[0].originFileObj as Blob);
 
-    setUploadLoading(true)
+    setUploadLoading(true);
     uploadBukti(
       {
         url: `${apiUrl}/customer/orders/${selectedOrder.idOrder}/upload-bukti`,
-        method: 'post',
+        method: "post",
         values: formData,
-        config: { headers: { 'Content-Type': 'multipart/form-data' } },
+        config: { headers: { "Content-Type": "multipart/form-data" } },
       },
       {
         onSuccess: () => {
-          setUploadLoading(false)
-          setIsModalOpen(false)
-          setFileList([])
-          setValidationResult(null)
-          setSelectedOrder(null)
-          invalidate({ resource: 'customer/orders', invalidates: ['list'] })
+          setUploadLoading(false);
+          setIsModalOpen(false);
+          setFileList([]);
+          setValidationResult(null);
+          setSelectedOrder(null);
+          invalidate({ resource: "customer/orders", invalidates: ["list"] });
 
           open?.({
-            type: 'success',
-            message: 'Berhasil',
-            description: 'Bukti pembayaran berhasil diupload. Tunggu konfirmasi admin.',
-          })
+            type: "success",
+            message: "Berhasil",
+            description:
+              "Bukti pembayaran berhasil diupload. Tunggu konfirmasi admin.",
+          });
         },
         onError: (error) => {
-          setUploadLoading(false)
+          setUploadLoading(false);
           open?.({
-            type: 'error',
-            message: 'Gagal',
-            description: error?.message || 'Upload gagal',
-          })
+            type: "error",
+            message: "Gagal",
+            description: error?.message || "Upload gagal",
+          });
         },
       }
-    )
-  }
+    );
+  };
 
-  const apiData = (tableProps.dataSource as any)?.data || []
+  const apiData = (tableProps.dataSource as any)?.data || [];
   const safeTableProps = {
     ...tableProps,
     dataSource: Array.isArray(apiData)
@@ -389,16 +402,16 @@ export default function CustomerOrdersList() {
           orderDetails: item.orderDetails,
         }))
       : [],
-  }
+  };
 
   const tabItems = [
-    { key: 'semua', label: 'Semua Transaksi' },
-    { key: 'menunggu_verifikasi', label: 'Menunggu' },
-    { key: 'dikirim', label: 'Sedang Dikirim' },
-    { key: 'selesai', label: 'Selesai' },
-    { key: 'ditolak', label: 'Ditolak' },
-    { key: 'pengembalian', label: 'Pengembalian' },
-  ]
+    { key: "semua", label: "Semua Transaksi" },
+    { key: "menunggu_verifikasi", label: "Menunggu" },
+    { key: "dikirim", label: "Sedang Dikirim" },
+    { key: "selesai", label: "Selesai" },
+    { key: "ditolak", label: "Ditolak" },
+    { key: "pengembalian", label: "Pengembalian" },
+  ];
 
   // Expanded Row Render
   const expandedRowRender = (record: any) => {
@@ -417,21 +430,21 @@ export default function CustomerOrdersList() {
               {item.material?.image || item.kambing?.image ? (
                 <Image
                   src={
-                    item.tipeProduk === 'material'
+                    item.tipeProduk === "material"
                       ? `${apiUrl}/${item.material.image}`
                       : `${apiUrl}/${item.kambing.image}`
                   }
                   alt={item.namaProduk}
                   width={40}
                   height={40}
-                  style={{ objectFit: 'cover', borderRadius: 4 }}
+                  style={{ objectFit: "cover", borderRadius: 4 }}
                 />
               ) : null}
               <div>
                 <Text strong>{item.namaProduk}</Text>
                 <br />
                 <Tag color="geekblue" style={{ fontSize: 10 }}>
-                  {item.tipeProduk === 'material' ? 'Material' : 'Kambing'}
+                  {item.tipeProduk === "material" ? "Material" : "Kambing"}
                 </Tag>
               </div>
             </Space>
@@ -441,9 +454,9 @@ export default function CustomerOrdersList() {
           title="Harga"
           dataIndex="hargaSatuan"
           render={(v) =>
-            new Intl.NumberFormat('id-ID', {
-              style: 'currency',
-              currency: 'IDR',
+            new Intl.NumberFormat("id-ID", {
+              style: "currency",
+              currency: "IDR",
               minimumFractionDigits: 0,
             }).format(parseFloat(v))
           }
@@ -454,9 +467,9 @@ export default function CustomerOrdersList() {
           dataIndex="subtotal"
           align="right"
           render={(v) =>
-            new Intl.NumberFormat('id-ID', {
-              style: 'currency',
-              currency: 'IDR',
+            new Intl.NumberFormat("id-ID", {
+              style: "currency",
+              currency: "IDR",
               minimumFractionDigits: 0,
             }).format(parseFloat(v))
           }
@@ -466,14 +479,14 @@ export default function CustomerOrdersList() {
           key="action"
           render={(_, item: any) => {
             const canRefund =
-              record.statusPembayaran === 'selesai' &&
-              item.tipeProduk === 'kambing' &&
+              record.statusPembayaran === "selesai" &&
+              item.tipeProduk === "kambing" &&
               !item.isRefunded &&
-              isRefundAvailable(record.tanggalSelesai)
+              isRefundAvailable(record.tanggalSelesai);
 
             // ✅ Jika sudah ada refund (dari preload)
             if (item.refund) {
-              if (item.refund.status === 'menunggu') {
+              if (item.refund.status === "menunggu") {
                 return (
                   <Space direction="vertical" size={4}>
                     <Tag color="orange">Menunggu Persetujuan</Tag>
@@ -486,10 +499,10 @@ export default function CustomerOrdersList() {
                       Batal Ajukan
                     </Button>
                   </Space>
-                )
-              } else if (item.refund.status === 'disetujui') {
-                return <Tag color="green">Refund Disetujui</Tag>
-              } else if (item.refund.status === 'ditolak') {
+                );
+              } else if (item.refund.status === "disetujui") {
+                return <Tag color="green">Refund Disetujui</Tag>;
+              } else if (item.refund.status === "ditolak") {
                 return (
                   <Space direction="vertical" size={4}>
                     <Tag color="red">Refund Ditolak</Tag>
@@ -504,66 +517,76 @@ export default function CustomerOrdersList() {
                       </Button>
                     )}
                   </Space>
-                )
+                );
               }
             }
 
             if (item.isRefunded) {
-              return <Tag color="green">Refund Disetujui</Tag>
+              return <Tag color="green">Refund Disetujui</Tag>;
             }
 
             if (canRefund) {
               return (
-                <Button danger size="small" onClick={() => handleRefundClick(item.idOrderDetail)}>
+                <Button
+                  danger
+                  size="small"
+                  onClick={() => handleRefundClick(item.idOrderDetail)}
+                >
                   Ajukan Pengembalian
                 </Button>
-              )
+              );
             }
-            return null
+            return null;
           }}
         />
       </Table>
-    )
-  }
+    );
+  };
 
-  const { mutate: cancelRefund } = useCustomMutation()
+  const { mutate: cancelRefund } = useCustomMutation();
 
   const handleCancelRefund = (refundId: number) => {
     Modal.confirm({
-      title: 'Batalkan Pengajuan Refund',
-      content: 'Apakah Anda yakin ingin membatalkan pengajuan refund ini?',
-      okText: 'Ya, Batalkan',
-      cancelText: 'Tidak',
+      title: "Batalkan Pengajuan Refund",
+      content: "Apakah Anda yakin ingin membatalkan pengajuan refund ini?",
+      okText: "Ya, Batalkan",
+      cancelText: "Tidak",
       okButtonProps: { danger: true },
       onOk: () => {
         cancelRefund(
           {
             url: `${apiUrl}/customer/refunds/${refundId}`,
-            method: 'delete',
+            method: "delete",
             values: {},
           },
           {
             onSuccess: () => {
-              invalidate({ resource: 'customer/orders', invalidates: ['list'] })
-              invalidate({ resource: 'customer/refunds', invalidates: ['list'] })
+              invalidate({
+                resource: "customer/orders",
+                invalidates: ["list"],
+              });
+              invalidate({
+                resource: "customer/refunds",
+                invalidates: ["list"],
+              });
               open?.({
-                type: 'success',
-                message: 'Berhasil',
-                description: 'Pengajuan refund berhasil dibatalkan.',
-              })
+                type: "success",
+                message: "Berhasil",
+                description: "Pengajuan refund berhasil dibatalkan.",
+              });
             },
             onError: (error) => {
               open?.({
-                type: 'error',
-                message: 'Gagal',
-                description: error?.message || 'Gagal membatalkan refund',
-              })
+                type: "error",
+                message: "Gagal",
+                description: error?.message || "Gagal membatalkan refund",
+              });
             },
           }
-        )
+        );
       },
-    })
-  }
+    });
+  };
 
   return (
     <>
@@ -575,7 +598,7 @@ export default function CustomerOrdersList() {
           style={{ marginBottom: 16 }}
         />
 
-        {activeTab === 'pengembalian' ? (
+        {activeTab === "pengembalian" ? (
           <CustomerRefundsList />
         ) : (
           <Table
@@ -601,16 +624,16 @@ export default function CustomerOrdersList() {
               dataIndex="tanggalOrder"
               title="Tanggal Order"
               sorter
-              render={(v) => dayjs(v).format('DD MMM YYYY HH:mm')}
+              render={(v) => dayjs(v).format("DD MMM YYYY HH:mm")}
             />
             <Table.Column
               dataIndex="totalHarga"
               title="Total"
               align="right"
               render={(v) =>
-                new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
+                new Intl.NumberFormat("id-ID", {
+                  style: "currency",
+                  currency: "IDR",
                   minimumFractionDigits: 0,
                 }).format(parseFloat(v))
               }
@@ -627,43 +650,50 @@ export default function CustomerOrdersList() {
                   record.statusPembayaran,
                   record.metodePembayaran,
                   record.buktiPembayaran
-                )
+                );
                 const color =
-                  record.metodePembayaran === 'qris' && !record.buktiPembayaran
-                    ? 'red'
-                    : getStatusColor(record.statusPembayaran)
-                return <Tag color={color}>{status}</Tag>
+                  record.metodePembayaran === "qris" && !record.buktiPembayaran
+                    ? "red"
+                    : getStatusColor(record.statusPembayaran);
+                return <Tag color={color}>{status}</Tag>;
               }}
             />
             <Table.Column
               dataIndex="orderDetails"
               title="Item"
-              render={(details: any[]) => <Text type="secondary">{details?.length || 0} item</Text>}
+              render={(details: any[]) => (
+                <Text type="secondary">{details?.length || 0} item</Text>
+              )}
             />
             <Table.Column
               title="Aksi"
               render={(_, record: any) => (
                 <Space>
-                  <ShowButton hideText size="small" recordItemId={record.idOrder} />
+                  <ShowButton
+                    hideText
+                    size="small"
+                    recordItemId={record.idOrder}
+                  />
                   {/* ✅ Tombol Bayar (hanya untuk QRIS belum bayar) */}
-                  {record.metodePembayaran === 'qris' && !record.buktiPembayaran && (
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<CreditCardOutlined />}
-                      onClick={() => handleBayar(record)}
-                    >
-                      Bayar
-                    </Button>
-                  )}
+                  {record.metodePembayaran === "qris" &&
+                    !record.buktiPembayaran && (
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<CreditCardOutlined />}
+                        onClick={() => handleBayar(record)}
+                      >
+                        Bayar
+                      </Button>
+                    )}
                   {/* ✅ Tombol Konfirmasi Diterima (hanya untuk status "dikirim") */}
-                  {record.statusPembayaran === 'dikirim' && (
+                  {record.statusPembayaran === "dikirim" && (
                     <Button
                       type="primary"
                       size="small"
                       icon={<CheckCircleOutlined />}
                       onClick={() => handleConfirmDelivery(record)}
-                      style={{ backgroundColor: '#52c41a' }}
+                      style={{ backgroundColor: "#52c41a" }}
                     >
                       Pesanan Selesai
                     </Button>
@@ -680,9 +710,9 @@ export default function CustomerOrdersList() {
         title={<Title level={4}>Upload Bukti Pembayaran</Title>}
         open={isModalOpen}
         onCancel={() => {
-          setIsModalOpen(false)
-          setFileList([])
-          setValidationResult(null)
+          setIsModalOpen(false);
+          setFileList([]);
+          setValidationResult(null);
         }}
         footer={null}
         width={900}
@@ -692,22 +722,22 @@ export default function CustomerOrdersList() {
           <>
             <Card
               size="small"
-              style={{ marginBottom: 24, background: '#fafafa' }}
+              style={{ marginBottom: 24, background: "#fafafa" }}
               title={`Detail Order - ${selectedOrder.nomorOrder}`}
             >
               <p>
-                <Text strong>Tanggal:</Text>{' '}
-                {dayjs(selectedOrder.tanggalOrder).format('DD MMM YYYY HH:mm')}
+                <Text strong>Tanggal:</Text>{" "}
+                {dayjs(selectedOrder.tanggalOrder).format("DD MMM YYYY HH:mm")}
               </p>
               <p>
-                <Text strong>Metode Pembayaran:</Text>{' '}
+                <Text strong>Metode Pembayaran:</Text>{" "}
                 {selectedOrder.metodePembayaran?.toUpperCase()}
               </p>
               <p>
-                <Text strong>Total:</Text>{' '}
-                {new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
+                <Text strong>Total:</Text>{" "}
+                {new Intl.NumberFormat("id-ID", {
+                  style: "currency",
+                  currency: "IDR",
                   minimumFractionDigits: 0,
                 }).format(selectedOrder.totalHarga)}
               </p>
@@ -715,16 +745,16 @@ export default function CustomerOrdersList() {
           </>
         )}
 
-        <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{ display: "flex", gap: 24 }}>
           {/* QRIS Side */}
           <div
             style={{
               flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#f5f5f5',
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#f5f5f5",
               borderRadius: 8,
               padding: 24,
             }}
@@ -737,10 +767,13 @@ export default function CustomerOrdersList() {
               alt="QRIS"
               width={220}
               height={220}
-              style={{ objectFit: 'contain' }}
+              style={{ objectFit: "contain" }}
               preview={false}
             />
-            <Text type="secondary" style={{ marginTop: 12, textAlign: 'center' }}>
+            <Text
+              type="secondary"
+              style={{ marginTop: 12, textAlign: "center" }}
+            >
               Gunakan aplikasi pembayaran Anda untuk scan kode QR di atas.
             </Text>
           </div>
@@ -781,17 +814,22 @@ export default function CustomerOrdersList() {
             {validationResult && !isValidating && (
               <Alert
                 showIcon
-                type={validationResult.isValid ? 'success' : 'error'}
-                message={validationResult.isValid ? 'Bukti Pembayaran Valid' : 'Bukti Tidak Valid'}
+                type={validationResult.isValid ? "success" : "error"}
+                message={
+                  validationResult.isValid
+                    ? "Bukti Pembayaran Valid"
+                    : "Bukti Tidak Valid"
+                }
                 description={
                   <>
                     <p>{validationResult.message}</p>
                     {validationResult.foundKeywords.length > 0 && (
                       <p>
-                        <strong>Kata kunci:</strong> {validationResult.foundKeywords.join(', ')}
+                        <strong>Kata kunci:</strong>{" "}
+                        {validationResult.foundKeywords.join(", ")}
                       </p>
                     )}
-                    <p style={{ fontSize: 12, color: '#666' }}>
+                    <p style={{ fontSize: 12, color: "#666" }}>
                       Confidence: {validationResult.confidence.toFixed(2)}%
                     </p>
                   </>
@@ -799,12 +837,12 @@ export default function CustomerOrdersList() {
               />
             )}
 
-            <div style={{ textAlign: 'right', marginTop: 24 }}>
+            <div style={{ textAlign: "right", marginTop: 24 }}>
               <Button
                 onClick={() => {
-                  setIsModalOpen(false)
-                  setFileList([])
-                  setValidationResult(null)
+                  setIsModalOpen(false);
+                  setFileList([]);
+                  setValidationResult(null);
                 }}
                 style={{ marginRight: 8 }}
                 disabled={isValidating || uploadLoading}
@@ -834,10 +872,10 @@ export default function CustomerOrdersList() {
         onCancel={() => setIsRefundModalVisible(false)}
         orderDetailId={selectedOrderDetailId}
         onSuccess={() => {
-          invalidate({ resource: 'customer/orders', invalidates: ['list'] })
-          invalidate({ resource: 'customer/refunds', invalidates: ['list'] })
+          invalidate({ resource: "customer/orders", invalidates: ["list"] });
+          invalidate({ resource: "customer/refunds", invalidates: ["list"] });
         }}
       />
     </>
-  )
+  );
 }

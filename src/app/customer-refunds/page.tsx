@@ -1,5 +1,5 @@
-import { CustomerRefundsList } from '@components/customer-refunds'
+import { CustomerRefundsList } from "@components/customer-refunds";
 
 export default function CustomerRefundsPage() {
-  return <CustomerRefundsList />
+  return <CustomerRefundsList />;
 }

@@ -139,9 +139,8 @@ export const authProviderClient: AuthProvider = {
   },
 
   // GET IDENTITY
-  // src\providers\auth-provider\auth-provider client ts
   getIdentity: async () => {
-    const auth = localStorage.getItem("user"); // FIXED KEY
+    const auth = localStorage.getItem("user");
     if (!auth) return null;
     try {
       const user = JSON.parse(auth);

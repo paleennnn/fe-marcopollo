@@ -2,7 +2,13 @@
 
 import React from "react";
 import { BaseRecord, CanAccess } from "@refinedev/core";
-import { useTable, List, EditButton, ShowButton, DeleteButton } from "@refinedev/antd";
+import {
+  useTable,
+  List,
+  EditButton,
+  ShowButton,
+  DeleteButton,
+} from "@refinedev/antd";
 import { Table, Space, Typography } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import UnauthorizedPage from "@app/unauthorized";
@@ -33,7 +39,8 @@ export const LeleList = () => {
             title="No."
             width={60}
             render={(_, __, index) => {
-              const { current = 1, pageSize = 10 } = tableProps.pagination || {};
+              const { current = 1, pageSize = 10 } =
+                tableProps.pagination || {};
               return (current - 1) * pageSize + index + 1;
             }}
           />
