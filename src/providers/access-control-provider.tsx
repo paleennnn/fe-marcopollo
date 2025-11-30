@@ -85,6 +85,16 @@ export const accessControlProvider: AccessControlProvider = {
       return { can: isAdmin(user) };
     }
 
+    // 📊 LELES RIWAYAT PANEN - ADMIN ONLY (LIST & SHOW ONLY)
+    if (resource === "leles-riwayat-panen") {
+      // ✅ NEW: Admin hanya bisa list dan show
+      if (action === "list" || action === "show") {
+        return { can: isAdmin(user) };
+      }
+      // Admin TIDAK bisa create, edit, delete riwayat panen
+      return { can: false };
+    }
+
     // 👥 USERS - Admin Only
     if (resource === "users") {
       return { can: isAdmin(user) };

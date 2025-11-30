@@ -1,21 +1,21 @@
-import { DevtoolsProvider } from '@providers/devtools'
-import { useNotificationProvider, RefineThemes } from '@refinedev/antd'
-import { Refine } from '@refinedev/core'
-import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar'
-import routerProvider from '@refinedev/nextjs-router'
-import { Metadata } from 'next'
-import { cookies } from 'next/headers'
-import React, { Suspense } from 'react'
-import '@refinedev/antd/dist/reset.css'
-import './global.css'
+import { DevtoolsProvider } from "@providers/devtools";
+import { useNotificationProvider, RefineThemes } from "@refinedev/antd";
+import { Refine } from "@refinedev/core";
+import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
+import routerProvider from "@refinedev/nextjs-router";
+import { Metadata } from "next";
+import { cookies } from "next/headers";
+import React, { Suspense } from "react";
+import "@refinedev/antd/dist/reset.css";
+import "./global.css";
 
-import { AntdRegistry } from '@ant-design/nextjs-registry'
-import { ConfigProvider } from 'antd'
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { ConfigProvider } from "antd";
 import {
   authProviderClient,
   accessControlProvider,
-} from '@providers/auth-provider/auth-provider.client'
-import { dataProviders } from '@providers/data-provider'
+} from "@providers/auth-provider/auth-provider.client";
+import { dataProviders } from "@providers/data-provider";
 // import { accessControlProvider } from "@providers/access-control-provider";
 
 import {
@@ -35,28 +35,30 @@ import {
   ShoppingCartOutlined,
   FileTextOutlined,
   UsergroupAddOutlined,
-} from '@ant-design/icons'
-import InstallButton from '@components/installButton'
-import { ColorModeContextProvider } from '@contexts/color-mode'
+  AppstoreOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
+import InstallButton from "@components/installButton";
+import { ColorModeContextProvider } from "@contexts/color-mode";
 
 export const metadata: Metadata = {
-  title: 'Marcopollo Group',
-  description: 'Marcopollo Group',
-  manifest: '/manifest.json',
-  keywords: ['Marcopollo'],
+  title: "Marcopollo Group",
+  description: "Marcopollo Group",
+  manifest: "/manifest.json",
+  keywords: ["Marcopollo"],
   icons: {
-    icon: '/favicon-32x32.png',
+    icon: "/favicon-32x32.png",
   },
-  authors: [{ name: 'Bio', url: 'https://github.com/paleennnn' }],
-}
+  authors: [{ name: "Bio", url: "https://github.com/paleennnn" }],
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
-  const cookieStore = cookies()
-  const theme = cookieStore.get('theme')
+  const cookieStore = cookies();
+  const theme = cookieStore.get("theme");
 
   return (
     <html lang="en">
@@ -71,7 +73,7 @@ export default function RootLayout({
           <ConfigProvider
             theme={{
               token: {
-                colorPrimary: '#3f7f80', // warna hijau
+                colorPrimary: "#3f7f80", // warna hijau
               },
             }}
           >
@@ -87,52 +89,62 @@ export default function RootLayout({
                       accessControlProvider={accessControlProvider}
                       resources={[
                         {
-                          name: 'homepage',
-                          list: '/',
+                          name: "homepage",
+                          list: "/",
                           meta: {
-                            label: 'Home',
+                            label: "Home",
                             hide: true,
                           },
                         },
                         {
-                          name: 'profile',
-                          list: '/profile',
+                          name: "profile",
+                          list: "/profile",
                           meta: {
-                            label: 'My Profile',
+                            label: "My Profile",
                             hide: false,
-                            icon: <UserOutlined style={{ fontSize: '1.2em' }} />,
+                            icon: (
+                              <UserOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                           },
                         },
                         {
-                          name: 'dashboard',
-                          list: '/dashboard',
+                          name: "dashboard",
+                          list: "/dashboard",
                           meta: {
-                            label: 'Dashboard',
-                            icon: <HomeFilled style={{ fontSize: '1.2em' }} />,
+                            label: "Dashboard",
+                            icon: <HomeFilled style={{ fontSize: "1.2em" }} />,
                           },
                         },
                         {
-                          name: 'users',
-                          list: '/users',
-                          create: '/users/create',
-                          edit: '/users/edit/:id',
-                          show: '/users/show/:id',
-                          meta: {
-                            canDelete: true,
-                            label: 'Pengguna',
-                            icon: <UsergroupAddOutlined style={{ fontSize: '1.2em' }} />,
-                          },
-                        },
-                        {
-                          name: 'materials',
-                          list: '/materials',
-                          create: '/materials/create',
-                          edit: '/materials/edit/:id',
-                          show: '/materials/show/:id',
+                          name: "users",
+                          list: "/users",
+                          create: "/users/create",
+                          edit: "/users/edit/:id",
+                          show: "/users/show/:id",
                           meta: {
                             canDelete: true,
-                            label: 'Material Bangunan',
-                            icon: <CodeSandboxSquareFilled style={{ fontSize: '1.2em' }} />,
+                            label: "Pengguna",
+                            icon: (
+                              <UsergroupAddOutlined
+                                style={{ fontSize: "1.2em" }}
+                              />
+                            ),
+                          },
+                        },
+                        {
+                          name: "materials",
+                          list: "/materials",
+                          create: "/materials/create",
+                          edit: "/materials/edit/:id",
+                          show: "/materials/show/:id",
+                          meta: {
+                            canDelete: true,
+                            label: "Material Bangunan",
+                            icon: (
+                              <CodeSandboxSquareFilled
+                                style={{ fontSize: "1.2em" }}
+                              />
+                            ),
                           },
                         },
                         // {
@@ -148,63 +160,85 @@ export default function RootLayout({
                         //   },
                         // },
                         {
-                          name: 'kambings',
-                          list: '/kambings',
-                          create: '/kambings/create',
-                          edit: '/kambings/edit/:id',
-                          show: '/kambings/show/:id',
+                          name: "kambings",
+                          list: "/kambings",
+                          create: "/kambings/create",
+                          edit: "/kambings/edit/:id",
+                          show: "/kambings/show/:id",
                           meta: {
                             canDelete: true,
-                            label: 'Kambing',
-                            icon: <ThunderboltFilled style={{ fontSize: '1.2em' }} />,
+                            label: "Kambing",
+                            icon: (
+                              <ThunderboltFilled
+                                style={{ fontSize: "1.2em" }}
+                              />
+                            ),
                           },
                         },
+
                         {
-                          name: 'leles',
-                          list: '/leles',
-                          create: '/leles/create',
-                          edit: '/leles/edit/:id',
-                          show: '/leles/show/:id',
+                          name: "leles",
+                          list: "/leles",
+                          show: "/leles/show/:id",
+                          create: "/leles/start-budidaya/:id",
+                          edit: "/leles/edit/:id",
                           meta: {
-                            canDelete: true,
-                            label: 'Lele',
-                            icon: <DockerOutlined style={{ fontSize: '1.2em' }} />,
+                            label: "Kolam Lele",
+                            icon: <AppstoreOutlined />,
+                          },
+                        },
+
+                        {
+                          name: "leles-riwayat-panen",
+                          list: "/leles-riwayat-panen",
+                          show: "/leles-riwayat-panen/show/:id",
+                          meta: {
+                            label: "Riwayat Panen",
+                            icon: <HistoryOutlined />,
                           },
                         },
                         // 🛒 KERANJANG - Customer Only
                         {
-                          name: 'customer/keranjang',
-                          list: '/keranjang',
+                          name: "customer/keranjang",
+                          list: "/keranjang",
                           meta: {
                             canDelete: true,
-                            label: 'Keranjang Belanja',
-                            icon: <ShoppingCartOutlined style={{ fontSize: '1.2em' }} />,
+                            label: "Keranjang Belanja",
+                            icon: (
+                              <ShoppingCartOutlined
+                                style={{ fontSize: "1.2em" }}
+                              />
+                            ),
                             hide: false,
                           },
                         },
                         // 🧾 CUSTOMER ORDERS
                         {
-                          name: 'customer/orders',
-                          list: '/customer-orders',
-                          show: '/customer-orders/show/:id',
+                          name: "customer/orders",
+                          list: "/customer-orders",
+                          show: "/customer-orders/show/:id",
                           meta: {
                             canDelete: false,
-                            label: 'Pesanan Saya',
-                            icon: <FileTextOutlined style={{ fontSize: '1.2em' }} />,
+                            label: "Pesanan Saya",
+                            icon: (
+                              <FileTextOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                             hide: false,
-                            identifier: 'idOrder', // Sesuaikan dengan field ID dari API
+                            identifier: "idOrder", // Sesuaikan dengan field ID dari API
                           },
                         },
                         // ✅ ADMIN ORDERS - Verifikasi
                         {
-                          name: 'orders',
-                          list: '/orders',
-                          show: '/orders/show/:id',
-                          edit: '/orders/edit/:id',
+                          name: "orders",
+                          list: "/orders",
+                          show: "/orders/show/:id",
+                          edit: "/orders/edit/:id",
                           meta: {
                             canDelete: true,
-                            label: 'Transaksi Pesanan',
-                            icon: <FileTextOutlined style={{ fontSize: '1.2em' }} />,
+                            label: "Transaksi Pesanan",
+                            icon: (
+                              <FileTextOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                           },
                         },
                         // 💸 CUSTOMER REFUNDS
@@ -218,11 +252,11 @@ export default function RootLayout({
                         // },
                         // 🛡️ ADMIN REFUNDS
                         {
-                          name: 'refunds',
-                          list: '/refunds',
+                          name: "refunds",
+                          list: "/refunds",
                           meta: {
-                            label: 'Manajemen Refund',
-                            icon: <ReadFilled style={{ fontSize: '1.2em' }} />,
+                            label: "Manajemen Refund",
+                            icon: <ReadFilled style={{ fontSize: "1.2em" }} />,
                           },
                         },
                       ]}
@@ -230,7 +264,7 @@ export default function RootLayout({
                         syncWithLocation: true,
                         warnWhenUnsavedChanges: true,
                         useNewQueryKeys: true,
-                        projectId: 'PPapVH-nZKuqU-6aYAL4',
+                        projectId: "PPapVH-nZKuqU-6aYAL4",
                       }}
                     >
                       {children}
@@ -244,5 +278,5 @@ export default function RootLayout({
         </ColorModeContextProvider>
       </body>
     </html>
-  )
+  );
 }
