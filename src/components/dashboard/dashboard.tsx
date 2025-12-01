@@ -12,6 +12,8 @@ import {
   Space,
   Tag,
   Alert,
+  Divider,
+  Progress,
 } from "antd";
 import {
   ShoppingOutlined,
@@ -21,9 +23,13 @@ import {
   ArrowRightOutlined,
   ThunderboltFilled,
   CodeSandboxOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { FinanceComparison } from "@components/finance/finance-comparison";
 import { CustomerWallet } from "@components/customer/customer-wallet";
+import { PieChartStatus } from "@components/finance/pie-chart-status";
+import { LineChartTrend } from "@components/finance/line-chart-trend";
+import { BarChartRevenue } from "@components/finance/bar-chart-revenue";
 import { useApiUrl, useNavigation, useGetIdentity } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import Typography from "antd/es/typography";
@@ -54,15 +60,12 @@ export const Dashboard = () => {
   const currentMonth = dayjs().month() + 1;
   const currentYear = dayjs().year();
 
-  // ✅ FUNCTION UNTUK GET USER ROLE DARI LOCALSTORAGE
   const getUserRole = () => {
     try {
       const userStr = localStorage.getItem("user");
       if (!userStr) return null;
-
       const parsed = JSON.parse(userStr);
-      const user = parsed.user ? parsed.user : parsed;
-      return user.role;
+      return (parsed.user || parsed).role;
     } catch {
       return null;
     }
@@ -72,12 +75,9 @@ export const Dashboard = () => {
   const isAdmin = userRole === "admin";
   const isCustomer = userRole === "customer";
 
-  // Fetch stats - HANYA UNTUK ADMIN
   useEffect(() => {
     const fetchStats = async () => {
-      // ✅ JIKA CUSTOMER, SKIP FETCH STATS ADMIN
       if (isCustomer) {
-        console.log("👥 Customer detected, skipping admin stats fetch");
         setStatsLoading(false);
         return;
       }
@@ -87,17 +87,9 @@ export const Dashboard = () => {
         setError(null);
 
         const token = localStorage.getItem("token");
-        const headers: HeadersInit = {
-          "Content-Type": "application/json",
-        };
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        console.log("🔄 Fetching dashboard stats for admin...");
-
-        // Fetch semua data yang dibutuhkan
         const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] =
           await Promise.all([
             fetch(`${apiUrl}/kambings`, { headers }),
@@ -110,35 +102,16 @@ export const Dashboard = () => {
             ),
           ]);
 
-        console.log("Response statuses:", {
-          kambings: kambingsRes.status,
-          materials: materialsRes.status,
-          users: usersRes.status,
-          orders: ordersRes.status,
-          finance: financeRes.status,
-        });
-
         const kambings = await kambingsRes.json();
         const materials = await materialsRes.json();
         const users = await usersRes.json();
         const orders = await ordersRes.json();
-        const finance = financeRes.ok
-          ? await financeRes.json()
-          : { data: null };
+        const finance = financeRes.ok ? await financeRes.json() : { data: null };
 
-        console.log("📊 Finance response:", finance);
-        console.log("📋 Raw orders response:", orders);
-
-        // Handle responses
-        const kambingsData = Array.isArray(kambings)
-          ? kambings
-          : kambings.data || [];
-        const materialsData = Array.isArray(materials)
-          ? materials
-          : materials.data || [];
+        const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
+        const materialsData = Array.isArray(materials) ? materials : materials.data || [];
         const usersData = Array.isArray(users) ? users : users.data || [];
 
-        // FIX: AdonisJS orders response format
         let ordersData: any[] = [];
         if (Array.isArray(orders)) {
           ordersData = orders;
@@ -146,67 +119,40 @@ export const Dashboard = () => {
           ordersData = orders.data.data;
         } else if (orders?.data && Array.isArray(orders.data)) {
           ordersData = orders.data;
-        } else if (orders?.message && orders?.data?.data) {
-          ordersData = orders.data.data || [];
         }
 
-        console.log("✅ Processed orders:", ordersData);
-
-        // Filter orders bulan ini yang selesai
         const ordersThisMonth = ordersData.filter((order: any) => {
-          // Support berbagai format field name
-          const orderDate =
-            order.tanggalVerifikasi || order.tanggal_verifikasi
-              ? dayjs(order.tanggalVerifikasi || order.tanggal_verifikasi)
-              : dayjs(
-                  order.tanggalOrder || order.tanggal_order || order.created_at
-                );
-
-          const status =
-            order.statusPembayaran || order.status_pembayaran || order.status;
-          const isThisMonth =
+          const orderDate = dayjs(
+            order.tanggalVerifikasi ||
+              order.tanggal_verifikasi ||
+              order.tanggalOrder ||
+              order.tanggal_order ||
+              order.created_at
+          );
+          const status = order.statusPembayaran || order.status_pembayaran || order.status;
+          return (
             orderDate.month() + 1 === currentMonth &&
-            orderDate.year() === currentYear;
-          const isCompleted = status === "selesai";
-
-          console.log(`Order ${order.idOrder || order.id}:`, {
-            date: orderDate.format("YYYY-MM-DD"),
-            status,
-            isThisMonth,
-            isCompleted,
-          });
-
-          return isThisMonth && isCompleted;
+            orderDate.year() === currentYear &&
+            status === "selesai"
+          );
         });
 
-        console.log("✅ Orders this month:", ordersThisMonth);
-
-        // Finance data
         const financeData = finance?.data?.ringkasan;
-        console.log("💰 Finance data:", financeData);
-
-        const totalProfit = financeData?.profit?.total ?? 0;
-        const totalRevenue = financeData?.omset?.total ?? 0;
 
         setStats({
           totalKambing: kambingsData?.length || 0,
           totalMaterial: materialsData?.length || 0,
-          totalCustomer:
-            usersData?.filter((u: any) => u.role === "customer").length || 0,
+          totalCustomer: usersData?.filter((u: any) => u.role === "customer").length || 0,
           totalOrdersBulanIni: ordersThisMonth.length,
-          totalRevenueBulanIni: totalRevenue,
-          totalProfitBulanIni: totalProfit,
+          totalRevenueBulanIni: financeData?.omset?.total ?? 0,
+          totalProfitBulanIni: financeData?.profit?.total ?? 0,
         });
 
-        // Set recent data
         setRecentKambings(kambingsData?.slice(0, 5) || []);
         setRecentMaterials(materialsData?.slice(0, 5) || []);
         setRecentOrders(ordersThisMonth.slice(0, 5) || []);
-
-        console.log("✅ Dashboard data loaded successfully");
         setStatsLoading(false);
       } catch (error: any) {
-        console.error("❌ Failed to fetch dashboard stats:", error);
         setError(error?.message || "Gagal memuat data dashboard");
         setStatsLoading(false);
       }
@@ -215,7 +161,6 @@ export const Dashboard = () => {
     fetchStats();
   }, [apiUrl, currentMonth, currentYear, isCustomer]);
 
-  // ⚠️ LOADING STATE
   if (identityLoading || statsLoading) {
     return (
       <Row gutter={[16, 16]}>
@@ -228,8 +173,7 @@ export const Dashboard = () => {
     );
   }
 
-  // Show error alert jika ada
-  if (error) {
+  if (error && isAdmin) {
     return (
       <Alert
         message="Error"
@@ -242,66 +186,96 @@ export const Dashboard = () => {
     );
   }
 
-  // ✅ RENDER BERDASARKAN ROLE
   return (
     <div style={{ padding: "24px 0" }}>
-      {/* 🛡️ TAMPILAN UNTUK ADMIN */}
       {isAdmin && (
         <>
-          {/* Stats Cards - HANYA UNTUK ADMIN */}
+          {/* Header Section */}
+          <Card
+            style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "white",
+              marginBottom: 32,
+              border: "none",
+            }}
+          >
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Title level={3} style={{ color: "white", marginBottom: 8 }}>
+                  📊 Dashboard Keuangan
+                </Title>
+                <Text style={{ color: "rgba(255,255,255,0.8)" }}>
+                  Periode: <strong>{dayjs().format("MMMM YYYY")}</strong>
+                </Text>
+              </Col>
+              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
+                <Button
+                  type="primary"
+                  onClick={() => push("/dashboard/finance")}
+                  style={{
+                    background: "rgba(255,255,255,0.2)",
+                    border: "1px solid white",
+                  }}
+                >
+                  Detail Keuangan <ArrowRightOutlined />
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* KPI Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title="Total Kambing"
+                  title="🐐 Total Kambing"
                   value={stats?.totalKambing || 0}
-                  prefix={<ThunderboltFilled />}
-                  valueStyle={{ color: "#1890ff" }}
+                  valueStyle={{ color: "#ff7a45" }}
+                  suffix="Ekor"
                 />
               </Card>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title="Total Material"
+                  title="📦 Total Material"
                   value={stats?.totalMaterial || 0}
-                  prefix={<CodeSandboxOutlined />}
                   valueStyle={{ color: "#52c41a" }}
+                  suffix="Produk"
                 />
               </Card>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title="Total Customer"
+                  title="👥 Total Customer"
                   value={stats?.totalCustomer || 0}
-                  prefix={<UserOutlined />}
-                  valueStyle={{ color: "#faad14" }}
+                  valueStyle={{ color: "#1890ff" }}
+                  suffix="Orang"
                 />
               </Card>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title={`Pesanan (${dayjs().format("MMM YYYY")})`}
+                  title={`🛒 Pesanan ${dayjs().format("MMM")}`}
                   value={stats?.totalOrdersBulanIni || 0}
-                  prefix={<ShoppingCartOutlined />}
-                  valueStyle={{ color: "#eb2f96" }}
+                  valueStyle={{ color: "#faad14" }}
+                  suffix="Order"
                 />
               </Card>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title={`Revenue (${dayjs().format("MMM YYYY")})`}
+                  title={`💰 Revenue ${dayjs().format("MMM")}`}
                   value={stats?.totalRevenueBulanIni || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="Rp"
-                  valueStyle={{ color: "#f5222d", fontSize: "16px" }}
+                  prefix="Rp "
+                  valueStyle={{ color: "#f5222d", fontSize: 16 }}
                   formatter={(value: any) =>
                     `${(value as number).toLocaleString("id-ID")}`
                   }
@@ -310,13 +284,12 @@ export const Dashboard = () => {
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Card hoverable>
+              <Card hoverable className="stat-card">
                 <Statistic
-                  title={`Profit (${dayjs().format("MMM YYYY")})`}
+                  title={`📈 Profit ${dayjs().format("MMM")}`}
                   value={stats?.totalProfitBulanIni || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="Rp"
-                  valueStyle={{ color: "#52c41a", fontSize: "16px" }}
+                  prefix="Rp "
+                  valueStyle={{ color: "#52c41a", fontSize: 16 }}
                   formatter={(value: any) =>
                     `${(value as number).toLocaleString("id-ID")}`
                   }
@@ -325,25 +298,45 @@ export const Dashboard = () => {
             </Col>
           </Row>
 
-          {/* 📈 Finance Trend - HANYA UNTUK ADMIN */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 32 }}>
-            <Col xs={24}>
+          {/* Charts Row 1 */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24} lg={12}>
               <FinanceComparison />
             </Col>
+            <Col xs={24} lg={12}>
+              <PieChartStatus />
+            </Col>
           </Row>
 
-          {/* 📋 Recent Data Tables - HANYA UNTUK ADMIN */}
-          <Row gutter={[16, 16]}>
-            {/* Recent Kambings */}
+          {/* Charts Row 2 */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24}>
+              <LineChartTrend />
+            </Col>
+          </Row>
+
+          {/* Charts Row 3 - ✅ ADD BAR CHART */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+            <Col xs={24}>
+              <BarChartRevenue />
+            </Col>
+          </Row>
+
+          {/* Recent Data Tables */}
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24} lg={12}>
               <Card
-                title={<Title level={4}>🐐 Kambing Terbaru</Title>}
+                title={
+                  <Space>
+                    <ThunderboltFilled style={{ color: "#ff7a45" }} />
+                    <span>Kambing Terbaru</span>
+                  </Space>
+                }
                 extra={
                   <Button type="link" onClick={() => push("/kambings")}>
                     Lihat Semua <ArrowRightOutlined />
                   </Button>
                 }
-                loading={false}
               >
                 {recentKambings.length > 0 ? (
                   <Table
@@ -359,20 +352,28 @@ export const Dashboard = () => {
                         title: "Umur",
                         dataIndex: "umur",
                         key: "umur",
-                        render: (umur) => <span>{umur} bulan</span>,
+                        render: (umur) => <span>{umur} bln</span>,
+                      },
+                      {
+                        title: "Harga Beli",
+                        dataIndex: "hargaBeli",
+                        key: "hargaBeli",
+                        render: (harga) => (
+                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
+                        ),
                       },
                       {
                         title: "Harga",
                         dataIndex: "harga",
                         key: "harga",
                         render: (harga) => (
-                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
                         ),
                       },
                     ]}
                     pagination={false}
                     size="small"
-                    rowKey={(record) => record.id_kambing || record.id}
+                    rowKey={(record) => record.id_kambing}
                   />
                 ) : (
                   <Empty description="Belum ada kambing" />
@@ -380,16 +381,19 @@ export const Dashboard = () => {
               </Card>
             </Col>
 
-            {/* Recent Materials */}
             <Col xs={24} lg={12}>
               <Card
-                title={<Title level={4}>📦 Material Terbaru</Title>}
+                title={
+                  <Space>
+                    <CodeSandboxOutlined style={{ color: "#52c41a" }} />
+                    <span>Material Terbaru</span>
+                  </Space>
+                }
                 extra={
                   <Button type="link" onClick={() => push("/materials")}>
                     Lihat Semua <ArrowRightOutlined />
                   </Button>
                 }
-                loading={false}
               >
                 {recentMaterials.length > 0 ? (
                   <Table
@@ -406,7 +410,7 @@ export const Dashboard = () => {
                         dataIndex: "hargaBeli",
                         key: "hargaBeli",
                         render: (harga) => (
-                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
                         ),
                       },
                       {
@@ -414,38 +418,45 @@ export const Dashboard = () => {
                         dataIndex: "hargaSatuan",
                         key: "hargaSatuan",
                         render: (harga) => (
-                          <Text>Rp {harga?.toLocaleString("id-ID")}</Text>
+                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
                         ),
                       },
                     ]}
                     pagination={false}
                     size="small"
-                    rowKey={(record) => record.id_material || record.id}
+                    rowKey={(record) => record.id_material}
                   />
                 ) : (
                   <Empty description="Belum ada material" />
                 )}
               </Card>
             </Col>
+          </Row>
 
-            {/* Recent Orders */}
+          {/* Recent Orders */}
+          <Row gutter={[16, 16]}>
             <Col xs={24}>
               <Card
-                title={<Title level={4}>🛒 Pesanan Terbaru (Selesai)</Title>}
+                title={
+                  <Space>
+                    <ShoppingCartOutlined style={{ color: "#faad14" }} />
+                    <span>Pesanan Terbaru (Selesai)</span>
+                  </Space>
+                }
                 extra={
                   <Button type="link" onClick={() => push("/orders")}>
                     Lihat Semua <ArrowRightOutlined />
                   </Button>
                 }
-                loading={false}
               >
                 {recentOrders.length > 0 ? (
                   <Table
                     dataSource={recentOrders}
                     columns={[
                       {
-                        title: "No. Order",
+                        title: "No.",
                         key: "no",
+                        width: 50,
                         render: (_text, _record, index) => (
                           <Text strong>#{index + 1}</Text>
                         ),
@@ -461,7 +472,7 @@ export const Dashboard = () => {
                         dataIndex: "totalHarga",
                         key: "totalHarga",
                         render: (harga) => (
-                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
+                          <Text strong>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
                         ),
                       },
                       {
@@ -475,21 +486,14 @@ export const Dashboard = () => {
                         title: "Status",
                         dataIndex: "statusPembayaran",
                         key: "statusPembayaran",
-                        render: (status) => {
-                          const colors: Record<string, string> = {
-                            selesai: "green",
-                            menunggu_verifikasi: "orange",
-                            ditolak: "red",
-                          };
-                          return (
-                            <Tag color={colors[status] || "blue"}>{status}</Tag>
-                          );
-                        },
+                        render: (status) => (
+                          <Tag color="green">{status}</Tag>
+                        ),
                       },
                     ]}
                     pagination={false}
                     size="small"
-                    rowKey={(record) => record.idOrder || record.id}
+                    rowKey={(record) => record.id_order}
                   />
                 ) : (
                   <Empty description="Belum ada pesanan bulan ini" />
@@ -500,25 +504,18 @@ export const Dashboard = () => {
         </>
       )}
 
-      {/* 👥 TAMPILAN UNTUK CUSTOMER */}
       {isCustomer && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 32 }}>
+        <Row gutter={[16, 16]}>
           <Col xs={24}>
             <CustomerWallet />
           </Col>
         </Row>
       )}
 
-      {/* ❌ JIKA ROLE TIDAK DIKENALI */}
       {!isAdmin && !isCustomer && (
         <Card>
-          <Empty
-            description="Role pengguna tidak dikenali"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          >
-            <Text type="secondary">
-              Silakan login kembali atau hubungi administrator
-            </Text>
+          <Empty description="Role tidak dikenali">
+            <Text type="secondary">Silakan login kembali</Text>
           </Empty>
         </Card>
       )}

@@ -15,7 +15,6 @@ const { Paragraph, Text, Title } = Typography;
 const UnauthorizedPage = () => {
   const router = useNavigation();
   const { data: identity } = useGetIdentity<{ profileType?: string }>();
-  //   const from = router.query.from || "/";
 
   return (
     <Suspense>

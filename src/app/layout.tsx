@@ -16,7 +16,6 @@ import {
   accessControlProvider,
 } from "@providers/auth-provider/auth-provider.client";
 import { dataProviders } from "@providers/data-provider";
-// import { accessControlProvider } from "@providers/access-control-provider";
 
 import {
   CalendarFilled,
@@ -37,6 +36,8 @@ import {
   UsergroupAddOutlined,
   AppstoreOutlined,
   HistoryOutlined,
+  TransactionOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 import { ColorModeContextProvider } from "@contexts/color-mode";
@@ -62,18 +63,12 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      {/* <head>
-        <meta
-          httpEquiv="Content-Security-Policy"
-          content="upgrade-insecure-requests"
-        />
-      </head> */}
       <body>
         <ColorModeContextProvider defaultMode={theme?.value}>
           <ConfigProvider
             theme={{
               token: {
-                colorPrimary: "#3f7f80", // warna hijau
+                colorPrimary: "#3f7f80",
               },
             }}
           >
@@ -147,18 +142,6 @@ export default function RootLayout({
                             ),
                           },
                         },
-                        // {
-                        //   name: "kandangs",
-                        //   list: "/kandangs",
-                        //   create: "/kandangs/create",
-                        //   edit: "/kandangs/edit/:id",
-                        //   show: "/kandangs/show/:id",
-                        //   meta: {
-                        //     canDelete: true,
-                        //     label: "Kandang",
-                        //     icon: <ControlFilled style={{ fontSize: "1.2em" }} />,
-                        //   },
-                        // },
                         {
                           name: "kambings",
                           list: "/kambings",
@@ -175,7 +158,14 @@ export default function RootLayout({
                             ),
                           },
                         },
-
+                        // MENU MANAJEMEN LELE (Dropdown)
+                        {
+                          name: "manajemen-lele",
+                          meta: {
+                            label: "Manajemen Lele",
+                            icon: <DockerOutlined style={{ fontSize: "1.2em" }} />,
+                          },
+                        },
                         {
                           name: "leles",
                           list: "/leles",
@@ -184,20 +174,50 @@ export default function RootLayout({
                           edit: "/leles/edit/:id",
                           meta: {
                             label: "Kolam Lele",
-                            icon: <AppstoreOutlined />,
+                            icon: <AppstoreOutlined style={{ fontSize: "1.2em" }} />,
+                            parent: "manajemen-lele",
                           },
                         },
-
                         {
                           name: "leles-riwayat-panen",
                           list: "/leles-riwayat-panen",
                           show: "/leles-riwayat-panen/show/:id",
                           meta: {
                             label: "Riwayat Panen",
-                            icon: <HistoryOutlined />,
+                            icon: <HistoryOutlined style={{ fontSize: "1.2em" }} />,
+                            parent: "manajemen-lele",
                           },
                         },
-                        // 🛒 KERANJANG - Customer Only
+                        // MENU TRANSAKSI (Dropdown)
+                        {
+                          name: "transaksi",
+                          meta: {
+                            label: "Transaksi",
+                            icon: <TransactionOutlined style={{ fontSize: "1.2em" }} />,
+                          },
+                        },
+                        {
+                          name: "orders",
+                          list: "/orders",
+                          show: "/orders/show/:id",
+                          edit: "/orders/edit/:id",
+                          meta: {
+                            canDelete: true,
+                            label: "Manajemen Transaksi",
+                            icon: <FileTextOutlined style={{ fontSize: "1.2em" }} />,
+                            parent: "transaksi",
+                          },
+                        },
+                        {
+                          name: "refunds",
+                          list: "/refunds",
+                          meta: {
+                            label: "Pengembalian",
+                            icon: <InboxOutlined style={{ fontSize: "1.2em" }} />,
+                            parent: "transaksi",
+                          },
+                        },
+                        // MENU CUSTOMER
                         {
                           name: "customer/keranjang",
                           list: "/keranjang",
@@ -212,7 +232,6 @@ export default function RootLayout({
                             hide: false,
                           },
                         },
-                        // 🧾 CUSTOMER ORDERS
                         {
                           name: "customer/orders",
                           list: "/customer-orders",
@@ -224,39 +243,7 @@ export default function RootLayout({
                               <FileTextOutlined style={{ fontSize: "1.2em" }} />
                             ),
                             hide: false,
-                            identifier: "idOrder", // Sesuaikan dengan field ID dari API
-                          },
-                        },
-                        // ✅ ADMIN ORDERS - Verifikasi
-                        {
-                          name: "orders",
-                          list: "/orders",
-                          show: "/orders/show/:id",
-                          edit: "/orders/edit/:id",
-                          meta: {
-                            canDelete: true,
-                            label: "Transaksi Pesanan",
-                            icon: (
-                              <FileTextOutlined style={{ fontSize: "1.2em" }} />
-                            ),
-                          },
-                        },
-                        // 💸 CUSTOMER REFUNDS
-                        // {
-                        //   name: 'customer/refunds',
-                        //   list: '/customer-refunds',
-                        //   meta: {
-                        //     label: 'Pengembalian Dana',
-                        //     icon: <ReadOutlined style={{ fontSize: '1.2em' }} />,
-                        //   },
-                        // },
-                        // 🛡️ ADMIN REFUNDS
-                        {
-                          name: "refunds",
-                          list: "/refunds",
-                          meta: {
-                            label: "Manajemen Refund",
-                            icon: <ReadFilled style={{ fontSize: "1.2em" }} />,
+                            identifier: "idOrder",
                           },
                         },
                       ]}
