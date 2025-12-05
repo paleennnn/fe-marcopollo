@@ -193,7 +193,7 @@ export const Dashboard = () => {
           {/* Header Section */}
           <Card
             style={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: "#2c595a",
               color: "white",
               marginBottom: 32,
               border: "none",
@@ -209,7 +209,7 @@ export const Dashboard = () => {
                 </Text>
               </Col>
               <Col xs={24} sm={12} style={{ textAlign: "right" }}>
-                <Button
+                {/* <Button
                   type="primary"
                   onClick={() => push("/dashboard/finance")}
                   style={{
@@ -218,7 +218,7 @@ export const Dashboard = () => {
                   }}
                 >
                   Detail Keuangan <ArrowRightOutlined />
-                </Button>
+                </Button> */}
               </Col>
             </Row>
           </Card>
@@ -305,13 +305,6 @@ export const Dashboard = () => {
             </Col>
             <Col xs={24} lg={12}>
               <PieChartStatus />
-            </Col>
-          </Row>
-
-          {/* Charts Row 2 */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-            <Col xs={24}>
-              <LineChartTrend />
             </Col>
           </Row>
 

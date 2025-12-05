@@ -16,7 +16,7 @@ import {
 } from "antd";
 import { useNotification } from "@refinedev/core";
 import { useParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -30,20 +30,31 @@ export const LeleEdit = () => {
   const [form] = Form.useForm();
   const apiUrl = useApiUrl();
 
-  const { data: kolamData, isLoading: isLoadingKolam } = useCustom({
+  const { data: kolamData, isLoading: isLoadingKolam, error: fetchError } = useCustom({
     url: `${apiUrl}/leles/${kolamId}`,
     method: "get",
     config: { query: {} },
+    queryOptions: {
+      enabled: !!kolamId,
+    },
   });
 
   const kolam = kolamData?.data?.data;
   const { mutate: updateBudidaya, isLoading: isSubmitting } = useCustomMutation();
 
-  // ✅ FIX: Populate form dengan benar
+  // ✅ FIX: Populate form dengan field names yang benar (camelCase)
   useEffect(() => {
-    if (isLoadingKolam) return;
+    if (isLoadingKolam) {
+      return;
+    }
 
-    if (kolam && !kolam.budidaya) {
+    if (!kolam) {
+      console.warn("Kolam is null/undefined");
+      return;
+    }
+
+    // Check apakah ada budidaya
+    if (!kolam.budidaya) {
       open?.({
         type: "error",
         message: "Tidak Ada Budidaya",
@@ -53,24 +64,43 @@ export const LeleEdit = () => {
       return;
     }
 
-    if (kolam?.budidaya) {
-      form.setFieldsValue({
-        jumlah_bibit: kolam.budidaya.jumlah_bibit,
-        harga_beli_total: kolam.budidaya.harga_beli_total,
-        tanggal_mulai: dayjs(kolam.budidaya.tanggal_mulai),
-      });
+    // ✅ Set form values - gunakan camelCase sesuai API response
+    try {
+      const formData = {
+        jumlahBibit: kolam.budidaya.jumlahBibit,           // ← camelCase
+        hargaBeliTotal: kolam.budidaya.hargaBeliTotal,     // ← camelCase
+        tanggalMulai: dayjs(kolam.budidaya.tanggalMulai),  // ← camelCase
+      };
+
+      console.log("Setting form values:", formData);
+      form.setFieldsValue(formData);
+    } catch (error) {
+      console.error("Error setting form:", error);
     }
   }, [kolam, isLoadingKolam, form, open, go]);
 
   const onFinish = (values: any) => {
+    console.log("Form values:", values);
+
+    // ✅ Validate jumlah_bibit
+    const jumlahBibit = Number(values.jumlahBibit);
+    if (jumlahBibit > kolam?.kapasitas_max) {
+      open?.({
+        type: "error",
+        message: "Validasi Gagal",
+        description: `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`,
+      });
+      return;
+    }
+
     updateBudidaya(
       {
         url: `${apiUrl}/leles/${kolamId}/update-budidaya`,
         method: "put",
         values: {
-          jumlah_bibit: Number(values.jumlah_bibit),
-          harga_beli_total: Number(values.harga_beli_total),
-          tanggal_mulai: dayjs(values.tanggal_mulai).format("YYYY-MM-DD"),
+          jumlahBibit: jumlahBibit,
+          hargaBeliTotal: Number(values.hargaBeliTotal),
+          tanggalMulai: dayjs(values.tanggalMulai).format("YYYY-MM-DD"),
         },
       },
       {
@@ -102,10 +132,15 @@ export const LeleEdit = () => {
     );
   }
 
-  if (!kolam) {
+  if (fetchError || !kolam) {
     return (
       <Edit isLoading={false}>
-        <Alert message="Error" description="Kolam tidak ditemukan" type="error" showIcon />
+        <Alert
+          message="Error"
+          description={fetchError?.message || "Kolam tidak ditemukan"}
+          type="error"
+          showIcon
+        />
       </Edit>
     );
   }
@@ -148,15 +183,28 @@ export const LeleEdit = () => {
       <Divider />
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
+        {/* ✅ FIX: Field name = jumlahBibit (camelCase) */}
         <Form.Item
           label="Jumlah Bibit Lele"
-          name="jumlah_bibit"
+          name="jumlahBibit"
           rules={[
             { required: true, message: "Jumlah bibit harus diisi" },
             {
-              type: "number",
-              max: kolam?.kapasitas_max,
-              message: `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`,
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                const num = Number(value);
+                if (num > kolam?.kapasitas_max) {
+                  return Promise.reject(
+                    new Error(
+                      `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`
+                    )
+                  );
+                }
+                if (num <= 0) {
+                  return Promise.reject(new Error("Jumlah bibit harus lebih dari 0"));
+                }
+                return Promise.resolve();
+              },
             },
           ]}
         >
@@ -165,16 +213,28 @@ export const LeleEdit = () => {
               type="number"
               placeholder={`Maksimal ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`}
               style={{ flex: 1 }}
-              min={0}
+              min={1}
             />
             <Input value="ekor" readOnly style={{ width: 60, textAlign: "center" }} />
           </Space.Compact>
         </Form.Item>
 
+        {/* ✅ FIX: Field name = hargaBeliTotal (camelCase) */}
         <Form.Item
           label="Harga Beli Total"
-          name="harga_beli_total"
-          rules={[{ required: true, message: "Harga beli total harus diisi" }]}
+          name="hargaBeliTotal"
+          rules={[
+            { required: true, message: "Harga beli total harus diisi" },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                if (Number(value) <= 0) {
+                  return Promise.reject(new Error("Harga harus lebih dari 0"));
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
           extra="Total harga pembelian bibit lele"
         >
           <Space.Compact style={{ width: "100%" }}>
@@ -183,14 +243,15 @@ export const LeleEdit = () => {
               type="number"
               placeholder="Masukkan total harga beli"
               style={{ flex: 1 }}
-              min={0}
+              min={1}
             />
           </Space.Compact>
         </Form.Item>
 
+        {/* ✅ FIX: Field name = tanggalMulai (camelCase) */}
         <Form.Item
           label="Tanggal Mulai Budidaya"
-          name="tanggal_mulai"
+          name="tanggalMulai"
           rules={[{ required: true, message: "Tanggal mulai harus diisi" }]}
         >
           <DatePicker style={{ width: "100%" }} format="DD MMMM YYYY" />

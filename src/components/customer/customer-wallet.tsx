@@ -21,7 +21,7 @@ import {
   FileTextOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import { useApiUrl, useNavigation } from "@refinedev/core";
+import { useApiUrl } from "@refinedev/core";
 import { useState, useEffect } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
@@ -31,41 +31,15 @@ const { Title, Text } = Typography;
 interface CustomerStats {
   totalBelanja: number;
   totalOrder: number;
-  totalRefund: number; // ✅ TAMBAHKAN FIELD REFUND
+  totalRefund: number;
   recentOrders: any[];
 }
 
-// ✅ MOCK DATA YANG LEBIH REALISTIS
 const mockCustomerStats: CustomerStats = {
-  totalBelanja: 12500000,
-  totalOrder: 5,
-  totalRefund: 0, // ✅ TAMBAHKAN FIELD REFUND
-  recentOrders: [
-    {
-      id_order: "ORD-2025-001",
-      nomor_order: "INV-2025-001",
-      total_harga: 3200000,
-      tanggal_order: "2025-01-20T14:30:00Z",
-      status: "selesai",
-      items: ["Kambing C", "Batu Bata 1000pcs"],
-    },
-    {
-      id_order: "ORD-2025-002",
-      nomor_order: "INV-2025-002",
-      total_harga: 1800000,
-      tanggal_order: "2025-01-15T11:20:00Z",
-      status: "selesai",
-      items: ["Kambing D", "Pasir Hitam"],
-    },
-    {
-      id_order: "ORD-2025-003",
-      nomor_order: "INV-2025-003",
-      total_harga: 4500000,
-      tanggal_order: "2025-01-10T09:45:00Z",
-      status: "selesai",
-      items: ["Kambing E", "Batu Bata 2000pcs"],
-    },
-  ],
+  totalBelanja: 0,
+  totalOrder: 0,
+  totalRefund: 0,
+  recentOrders: [],
 };
 
 export const CustomerWallet = () => {
@@ -75,31 +49,20 @@ export const CustomerWallet = () => {
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
 
-  // ✅ FUNCTION UNTUK GET USER INFO
   const getUserInfo = () => {
     try {
       const userStr = localStorage.getItem("user");
-      console.log("📝 Raw user data from localStorage:", userStr);
-
-      if (!userStr) {
-        console.log("❌ No user data found in localStorage");
-        return null;
-      }
+      if (!userStr) return null;
 
       const parsed = JSON.parse(userStr);
-      console.log("📝 Parsed user data:", parsed);
-
       const user = parsed.user ? parsed.user : parsed;
-      const userInfo = {
+
+      return {
         id: user.id,
         role: user.role,
         name: user.fullname || user.name || "Customer",
       };
-
-      console.log("👤 Extracted user info:", userInfo);
-      return userInfo;
     } catch (error) {
-      console.error("❌ Error parsing user data:", error);
       return null;
     }
   };
@@ -107,22 +70,13 @@ export const CustomerWallet = () => {
   const userInfo = getUserInfo();
   const isCustomer = userInfo?.role === "customer";
 
-  console.log("🎯 Final check - Is Customer:", isCustomer);
-  console.log("🎯 User ID:", userInfo?.id);
-
   const fetchCustomerStats = async () => {
     try {
       setLoading(true);
       setError(null);
       setUsingMockData(false);
 
-      console.log("🔄 Starting to fetch customer stats...");
-      console.log("🔗 API URL:", apiUrl);
-      console.log("👤 User Info:", userInfo);
-
-      // ✅ JIKA BUKAN CUSTOMER, LANGSUNG PAKAI MOCK DATA
       if (!isCustomer) {
-        console.log("🛑 Not a customer, using mock data directly");
         setStats(mockCustomerStats);
         setUsingMockData(true);
         setLoading(false);
@@ -130,8 +84,6 @@ export const CustomerWallet = () => {
       }
 
       const token = localStorage.getItem("token");
-      console.log("🔑 Token available:", !!token);
-
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
@@ -140,7 +92,6 @@ export const CustomerWallet = () => {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      // ✅ COBA BEBERAPA ENDPOINT YANG MUNGKIN
       const endpoints = [
         `${apiUrl}/customer/orders`,
         `${apiUrl}/orders?customer_id=${userInfo?.id}`,
@@ -151,38 +102,24 @@ export const CustomerWallet = () => {
       let success = false;
       let apiData: any = null;
 
-      // ✅ COBA SETIAP ENDPOINT
       for (const endpoint of endpoints) {
         try {
-          console.log(`🔍 Trying endpoint: ${endpoint}`);
           const response = await fetch(endpoint, {
             credentials: "include",
             headers,
           });
 
-          console.log(`📡 Response status for ${endpoint}:`, response.status);
-
           if (response.ok) {
-            const data = await response.json();
-            console.log(`✅ Success with endpoint ${endpoint}:`, data);
-            apiData = data;
+            apiData = await response.json();
             success = true;
             break;
-          } else {
-            console.warn(
-              `❌ Endpoint ${endpoint} failed with status:`,
-              response.status
-            );
           }
         } catch (endpointError) {
-          console.error(`❌ Error with endpoint ${endpoint}:`, endpointError);
+          continue;
         }
       }
 
       if (success && apiData) {
-        console.log("✅ API call successful, processing data...");
-
-        // ✅ PROCESS DATA DARI BERBAGAI FORMAT RESPONSE
         let orders = [];
 
         if (Array.isArray(apiData)) {
@@ -191,23 +128,12 @@ export const CustomerWallet = () => {
           orders = apiData.data;
         } else if (apiData.orders && Array.isArray(apiData.orders)) {
           orders = apiData.orders;
-        } else {
-          orders = [];
         }
 
-        console.log("📦 Raw orders from API:", orders);
-
-        // ✅ FILTER UNTUK CUSTOMER YANG SEDANG LOGIN
         const customerOrders = orders.filter((order: any) => {
           const orderUserId = order.user_id || order.userId || order.id_user;
-          const isCustomerOrder = orderUserId == userInfo?.id; // Use == for loose comparison
-          console.log(
-            `Order ${order.id}: user_id=${orderUserId}, current_user=${userInfo?.id}, match=${isCustomerOrder}`
-          );
-          return isCustomerOrder;
+          return orderUserId == userInfo?.id;
         });
-
-        console.log("👤 Customer-specific orders:", customerOrders);
 
         const completedOrders = customerOrders.filter(
           (order: any) =>
@@ -217,50 +143,45 @@ export const CustomerWallet = () => {
             order.payment_status === "completed"
         );
 
-        console.log("✅ Completed orders:", completedOrders);
+        const getTotalHarga = (order: any): number => {
+          const possibleTotalFields = [
+            "total_harga",
+            "totalHarga",
+            "total_amount",
+            "totalAmount",
+            "amount",
+            "harga_total",
+            "total",
+            "grand_total",
+            "grandTotal",
+          ];
 
-        // ✅ PERBAIKAN: CARI FIELD TOTAL_HARGA YANG SESUAI
-        const totalBelanja = completedOrders.reduce(
-          (sum: number, order: any) => {
-            // Coba berbagai kemungkinan field name untuk total harga
-            const possibleTotalFields = [
-              "total_harga",
-              "totalHarga",
-              "total_amount",
-              "totalAmount",
-              "amount",
-              "harga_total",
-              "total",
-              "grand_total",
-              "grandTotal",
-            ];
-
-            let orderTotal = 0;
-            for (const field of possibleTotalFields) {
-              if (order[field] !== undefined && order[field] !== null) {
-                orderTotal = order[field];
-                console.log(`💰 Found total in field '${field}':`, orderTotal);
-                break;
+          for (const field of possibleTotalFields) {
+            const value = order[field];
+            if (
+              value !== undefined &&
+              value !== null &&
+              value !== "" &&
+              !isNaN(Number(value))
+            ) {
+              const numValue = Number(value);
+              if (numValue > 0) {
+                return numValue;
               }
             }
+          }
 
-            // Jika tidak ditemukan, log untuk debugging
-            if (orderTotal === 0) {
-              console.log(
-                "🔍 Order fields for total search:",
-                Object.keys(order)
-              );
-              console.log("❌ No total field found in order:", order);
-            }
+          return 0;
+        };
 
+        const totalBelanja = completedOrders.reduce(
+          (sum: number, order: any) => {
+            const orderTotal = getTotalHarga(order);
             return sum + orderTotal;
           },
           0
         );
 
-        console.log("💰 Calculated totalBelanja:", totalBelanja);
-
-        // ✅ FETCH REFUND DATA
         let totalRefund = 0;
         try {
           const refundResponse = await fetch(`${apiUrl}/customer/refunds`, {
@@ -270,97 +191,61 @@ export const CustomerWallet = () => {
 
           if (refundResponse.ok) {
             const refundData = await refundResponse.json();
-            console.log("📦 Refund data:", refundData);
-
-            // Handle array response
             const refunds = Array.isArray(refundData)
               ? refundData
               : refundData.data || [];
 
-            // Calculate total approved refunds
             totalRefund = refunds
               .filter((refund: any) => refund.status === "disetujui")
               .reduce((sum: number, refund: any) => {
-                const refundAmount =
-                  refund.totalHarga || refund.total_harga || 0;
-                return sum + refundAmount;
+                const refundAmount = Number(
+                  refund.totalHarga || refund.total_harga || 0
+                );
+                return sum + (isNaN(refundAmount) ? 0 : Math.max(refundAmount, 0));
               }, 0);
-
-            console.log("💸 Total approved refunds:", totalRefund);
           }
         } catch (refundError) {
-          console.warn(
-            "⚠️ Failed to fetch refunds, continuing without refund data:",
-            refundError
-          );
+          totalRefund = 0;
         }
 
         const processedOrders = completedOrders
           .slice(0, 10)
-          .map((order: any) => {
-            // Cari field total_harga yang sesuai untuk setiap order
-            const possibleTotalFields = [
-              "total_harga",
-              "totalHarga",
-              "total_amount",
-              "totalAmount",
-              "amount",
-              "harga_total",
-              "total",
-              "grand_total",
-              "grandTotal",
-            ];
-
-            let orderTotal = 0;
-            for (const field of possibleTotalFields) {
-              if (order[field] !== undefined && order[field] !== null) {
-                orderTotal = order[field];
-                break;
-              }
-            }
-
-            return {
-              id_order: order.id_order || order.idOrder || order.id,
-              nomor_order:
-                order.nomor_order ||
-                order.nomorOrder ||
-                order.order_number ||
-                `INV-${order.id}`,
-              total_harga: orderTotal, // Gunakan nilai yang sudah ditemukan
-              tanggal_order:
-                order.tanggal_order ||
-                order.tanggalOrder ||
-                order.order_date ||
-                order.created_at,
-              status:
-                order.status ||
-                order.status_pembayaran ||
-                order.statusPembayaran ||
-                "selesai",
-              items: order.items || order.order_items || [],
-            };
-          });
+          .map((order: any) => ({
+            id_order: order.id_order || order.idOrder || order.id,
+            nomor_order:
+              order.nomor_order ||
+              order.nomorOrder ||
+              order.order_number ||
+              `INV-${order.id}`,
+            total_harga: getTotalHarga(order),
+            tanggal_order:
+              order.tanggal_order ||
+              order.tanggalOrder ||
+              order.order_date ||
+              order.created_at,
+            status:
+              order.status ||
+              order.status_pembayaran ||
+              order.statusPembayaran ||
+              "selesai",
+            items: order.items || order.order_items || [],
+          }));
 
         const customerStats = {
-          totalBelanja,
-          totalOrder: completedOrders.length,
-          totalRefund, // ✅ TAMBAHKAN TOTAL REFUND
+          totalBelanja: Math.max(totalBelanja, 0),
+          totalOrder: Math.max(completedOrders.length, 0),
+          totalRefund: Math.max(totalRefund, 0),
           recentOrders: processedOrders,
         };
 
-        console.log("📊 Final customer stats:", customerStats);
         setStats(customerStats);
       } else {
-        // ✅ FALLBACK KE MOCK DATA JIKA SEMUA ENDPOINT GAGAL
-        console.warn("❌ All API endpoints failed, using mock data");
         setStats(mockCustomerStats);
         setUsingMockData(true);
         setError("Tidak dapat terhubung ke server. Menampilkan data contoh.");
         message.info("Menggunakan data contoh untuk demo");
       }
     } catch (error) {
-      console.error("❌ Critical error in fetchCustomerStats:", error);
-      // ✅ FALLBACK KE MOCK DATA JIKA ADA ERROR
       setStats(mockCustomerStats);
       setUsingMockData(true);
       setError("Terjadi kesalahan sistem. Menampilkan data contoh.");
@@ -371,11 +256,9 @@ export const CustomerWallet = () => {
   };
 
   useEffect(() => {
-    console.log("🎬 CustomerWallet component mounted");
     fetchCustomerStats();
   }, [apiUrl, isCustomer]);
 
-  // ✅ JIKA BUKAN CUSTOMER, TAMPILKAN PESAN
   if (!isCustomer && !loading) {
     return (
       <div style={{ padding: "24px 0" }}>
@@ -393,7 +276,6 @@ export const CustomerWallet = () => {
     );
   }
 
-  // ✅ LOADING STATE
   if (loading) {
     return (
       <div style={{ padding: "24px 0" }}>
@@ -416,7 +298,6 @@ export const CustomerWallet = () => {
     );
   }
 
-  // ✅ JIKA TIDAK ADA STATS SETELAH LOADING
   if (!stats) {
     return (
       <div style={{ padding: "24px 0" }}>
@@ -449,7 +330,6 @@ export const CustomerWallet = () => {
   );
 };
 
-// ✅ COMPONENT TERPISAH UNTUK KONTEN STATS
 const CustomerStatsContent = ({
   stats,
   onRefresh,
@@ -464,13 +344,12 @@ const CustomerStatsContent = ({
   error?: string | null;
 }) => {
   const totalRefund = stats.totalRefund || 0;
-  const netSpending = stats.totalBelanja - totalRefund; // ✅ KURANGI REFUND
+  const netSpending = stats.totalBelanja - totalRefund;
   const averageOrder =
     stats.totalOrder > 0 ? Math.round(netSpending / stats.totalOrder) : 0;
 
   return (
     <div style={{ padding: "24px 0" }}>
-      {/* Alert untuk mock data */}
       {usingMockData && (
         <Alert
           message="Data Demo"
@@ -483,7 +362,6 @@ const CustomerStatsContent = ({
         />
       )}
 
-      {/* Error Alert */}
       {error && !usingMockData && (
         <Alert
           message="Koneksi Terputus"
@@ -495,7 +373,6 @@ const CustomerStatsContent = ({
         />
       )}
 
-      {/* Header Section */}
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
         <div
           style={{
@@ -513,7 +390,6 @@ const CustomerStatsContent = ({
             </Text>
           </Space>
 
-          {/* Refresh Button */}
           {onRefresh && (
             <Button
               icon={<ReloadOutlined />}
@@ -528,7 +404,6 @@ const CustomerStatsContent = ({
         </div>
       </Space>
 
-      {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 32, marginTop: 24 }}>
         <Col xs={24} sm={12} lg={8}>
           <Card hoverable styles={{ body: { padding: "20px" } }}>
@@ -572,19 +447,6 @@ const CustomerStatsContent = ({
                   Gross: Rp {stats.totalBelanja.toLocaleString("id-ID")}
                 </Text>
               </div>
-            )}
-            {netSpending === 0 && (
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 10,
-                  display: "block",
-                  marginTop: 4,
-                  color: "#ff4d4f",
-                }}
-              >
-                Field total_harga tidak ditemukan di data order
-              </Text>
             )}
           </Card>
         </Col>
@@ -630,24 +492,10 @@ const CustomerStatsContent = ({
             >
               Rata-rata nilai setiap pesanan
             </Text>
-            {averageOrder === 0 && stats.totalOrder > 0 && (
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 10,
-                  display: "block",
-                  marginTop: 4,
-                  color: "#ff4d4f",
-                }}
-              >
-                Tidak dapat menghitung: total_harga = 0
-              </Text>
-            )}
           </Card>
         </Col>
       </Row>
 
-      {/* Recent Orders */}
       <Card
         title={
           <Space>
@@ -746,21 +594,14 @@ const CustomerStatsContent = ({
             <Text type="secondary">
               Pesanan yang sudah selesai akan muncul di sini
             </Text>
-            {usingMockData && (
-              <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-                (Data demo: Tidak ada pesanan dalam contoh data)
-              </Text>
-            )}
           </Empty>
         )}
       </Card>
 
-      {/* Info Footer */}
       <Card size="small" style={{ marginTop: 16, backgroundColor: "#fafafa" }}>
         <Text type="secondary" style={{ fontSize: "12px" }}>
-          {usingMockData
-            ? "💡 Sedang menampilkan data contoh. Pastikan backend API tersedia untuk data real."
-            : "💡 Data diperbarui secara real-time. Pastikan koneksi internet stabil untuk data terbaru."}
+          💡 Data diperbarui secara real-time. Pastikan koneksi internet stabil
+          untuk data terbaru.
         </Text>
       </Card>
     </div>

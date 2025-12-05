@@ -257,11 +257,9 @@ export const BarChartRevenue = () => {
   };
 
   const validRevenues = filteredData.map((d) => d.revenue).filter((r) => r > 0);
-  // ✅ FIX: Find current data yang benar untuk semua filter
   const getCurrentData = () => {
     if (timeRange === "month") {
-      // Cari hari terakhir yang punya data
-      return filteredData.reverse().find((d) => d.revenue > 0) || filteredData[filteredData.length - 1];
+      return [...filteredData].reverse().find((d) => d.revenue > 0) || filteredData[filteredData.length - 1];
     }
     return filteredData[filteredData.length - 1];
   };

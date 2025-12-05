@@ -427,7 +427,7 @@ export default function CustomerOrdersList() {
           key="product"
           render={(_, item: any) => (
             <Space>
-              {item.material?.image || item.kambing?.image ? (
+              {/* {item.material?.image || item.kambing?.image ? (
                 <Image
                   src={
                     item.tipeProduk === "material"
@@ -439,7 +439,7 @@ export default function CustomerOrdersList() {
                   height={40}
                   style={{ objectFit: "cover", borderRadius: 4 }}
                 />
-              ) : null}
+              ) : null} */}
               <div>
                 <Text strong>{item.namaProduk}</Text>
                 <br />
