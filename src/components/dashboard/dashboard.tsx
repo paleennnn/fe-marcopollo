@@ -12,30 +12,27 @@ import {
   Space,
   Tag,
   Alert,
-  Divider,
-  Progress,
 } from "antd";
 import {
-  ShoppingOutlined,
   ShoppingCartOutlined,
-  UserOutlined,
-  DollarOutlined,
   ArrowRightOutlined,
   ThunderboltFilled,
-  CodeSandboxOutlined,
-  LineChartOutlined,
 } from "@ant-design/icons";
 import { FinanceComparison } from "@components/finance/finance-comparison";
 import { CustomerWallet } from "@components/customer/customer-wallet";
 import { PieChartStatus } from "@components/finance/pie-chart-status";
-import { LineChartTrend } from "@components/finance/line-chart-trend";
 import { BarChartRevenue } from "@components/finance/bar-chart-revenue";
 import { useApiUrl, useNavigation, useGetIdentity } from "@refinedev/core";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
+
+// 🔧 CONSTANTS
+const PANEN_UMUR = 90;
+const PANEN_WARNING_UMUR = 83;
+const RECENT_ITEMS_LIMIT = 5;
 
 interface DashboardStats {
   totalKambing: number;
@@ -46,125 +43,350 @@ interface DashboardStats {
   totalProfitBulanIni: number;
 }
 
+interface KolamStatus {
+  id_kolam: string;
+  nomor_kolam: string;
+  ukuran: string;
+  jumlah_bibit: number;
+  hari_ke: number;
+  tanggal_panen: string;
+  status: "siap_panen" | "akan_panen" | "budidaya";
+}
+
+interface OrderData {
+  id_order: string;
+  user?: { fullname: string };
+  totalHarga: number;
+  tanggalOrder: string;
+  statusPembayaran: string;
+}
+
+// 🔧 UTILITY FUNCTIONS
+const getUserRole = (): string | null => {
+  try {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    
+    const parsed = JSON.parse(userStr);
+    return (parsed.user || parsed).role;
+  } catch {
+    return null;
+  }
+};
+
+const formatCurrency = (value: number): string => {
+  return `Rp ${value.toLocaleString("id-ID")}`;
+};
+
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    selesai: "green",
+    proses: "blue",
+    pending: "orange",
+    batal: "red",
+    siap_panen: "red",
+    akan_panen: "orange",
+    budidaya: "blue",
+  };
+  return colors[status] || "default";
+};
+
+// 🔧 DATA FETCHING FUNCTIONS
+const fetchKolamStatus = async (apiUrl: string, headers: HeadersInit): Promise<KolamStatus[]> => {
+  try {
+    const response = await fetch(`${apiUrl}/leles`, { headers });
+    
+    if (!response.ok) return [];
+    
+    const result = await response.json();
+    const kolamsData = Array.isArray(result) ? result : result.data || [];
+    
+    return kolamsData
+      .map((kolam: any): KolamStatus | null => {
+        const activeBudidaya = Array.isArray(kolam.budidaya) && kolam.budidaya.length > 0
+          ? kolam.budidaya[0]
+          : kolam.budidaya;
+          
+        if (!activeBudidaya) return null;
+        
+        const startDate = dayjs(
+          activeBudidaya.tanggal_mulai || activeBudidaya.tanggalMulai
+        );
+        
+        if (!startDate.isValid()) return null;
+        
+        const hariKe = dayjs().diff(startDate, "days");
+        const panenDate = startDate.add(PANEN_UMUR, "days");
+        
+        const status: KolamStatus["status"] = 
+          hariKe >= PANEN_UMUR ? "siap_panen" :
+          hariKe >= PANEN_WARNING_UMUR ? "akan_panen" : "budidaya";
+        
+        return {
+          id_kolam: kolam.id_kolam || kolam.idKolam || "",
+          nomor_kolam: kolam.nomor_kolam || kolam.nomorKolam || "",
+          ukuran: kolam.ukuran || "",
+          jumlah_bibit: activeBudidaya.jumlah_bibit || activeBudidaya.jumlahBibit || 0,
+          hari_ke: hariKe,
+          tanggal_panen: panenDate.toISOString(),
+          status,
+        };
+      })
+      .filter((k: KolamStatus | null): k is KolamStatus => k !== null)
+      .sort((a: KolamStatus, b: KolamStatus) => b.hari_ke - a.hari_ke)
+      .slice(0, RECENT_ITEMS_LIMIT);
+  } catch {
+    return [];
+  }
+};
+
 export const Dashboard = () => {
   const apiUrl = useApiUrl();
   const { push } = useNavigation();
   const { data: identity, isLoading: identityLoading } = useGetIdentity<any>();
+  
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recentKambings, setRecentKambings] = useState<any[]>([]);
-  const [recentMaterials, setRecentMaterials] = useState<any[]>([]);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<OrderData[]>([]);
+  const [kolamStatus, setKolamStatus] = useState<KolamStatus[]>([]);
+  const [kolamLoading, setKolamLoading] = useState(false);
 
-  const currentMonth = dayjs().month() + 1;
-  const currentYear = dayjs().year();
-
-  const getUserRole = () => {
-    try {
-      const userStr = localStorage.getItem("user");
-      if (!userStr) return null;
-      const parsed = JSON.parse(userStr);
-      return (parsed.user || parsed).role;
-    } catch {
-      return null;
-    }
-  };
-
-  const userRole = getUserRole();
+  const userRole = useMemo(() => getUserRole(), []);
   const isAdmin = userRole === "admin";
   const isCustomer = userRole === "customer";
+  
+  const currentMonth = useMemo(() => dayjs().month() + 1, []);
+  const currentYear = useMemo(() => dayjs().year(), []);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (isCustomer) {
-        setStatsLoading(false);
-        return;
+  const fetchDashboardData = useCallback(async () => {
+    if (isCustomer) {
+      setStatsLoading(false);
+      return;
+    }
+
+    try {
+      setStatsLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = { 
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      };
+
+      const fetchPromises = [
+        fetch(`${apiUrl}/kambings`, { headers }),
+        fetch(`${apiUrl}/materials`, { headers }),
+        fetch(`${apiUrl}/users`, { headers }),
+        fetch(`${apiUrl}/orders`, { headers }),
+        fetch(`${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`, { headers }),
+      ];
+
+      const responses = await Promise.all(fetchPromises);
+      const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = responses;
+
+      // Process all responses
+      const [kambings, materials, users, orders, finance] = await Promise.all([
+        kambingsRes.json(),
+        materialsRes.json(),
+        usersRes.json(),
+        ordersRes.json(),
+        financeRes.ok ? financeRes.json() : { data: null },
+      ]);
+
+      // Extract data with type safety
+      const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
+      const materialsData = Array.isArray(materials) ? materials : materials.data || [];
+      const usersData = Array.isArray(users) ? users : users.data || [];
+
+      // Process orders data
+      let ordersData: any[] = [];
+      if (Array.isArray(orders)) {
+        ordersData = orders;
+      } else if (orders?.data?.data && Array.isArray(orders.data.data)) {
+        ordersData = orders.data.data;
+      } else if (orders?.data && Array.isArray(orders.data)) {
+        ordersData = orders.data;
       }
 
-      try {
-        setStatsLoading(true);
-        setError(null);
+      const allRecentOrders = ordersData
+        .map((order): OrderData => ({
+          id_order: order.id_order || order.idOrder || "",
+          user: order.user || { fullname: "" },
+          totalHarga: order.totalHarga || order.total_harga || 0,
+          tanggalOrder: order.tanggalOrder || order.tanggal_order || order.created_at || "",
+          statusPembayaran: order.statusPembayaran || order.status_pembayaran || "",
+        }))
+        .sort((a, b) => dayjs(b.tanggalOrder).unix() - dayjs(a.tanggalOrder).unix())
+        .slice(0, RECENT_ITEMS_LIMIT);
 
-        const token = localStorage.getItem("token");
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+      const financeData = finance?.data?.ringkasan;
 
-        const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] =
-          await Promise.all([
-            fetch(`${apiUrl}/kambings`, { headers }),
-            fetch(`${apiUrl}/materials`, { headers }),
-            fetch(`${apiUrl}/users`, { headers }),
-            fetch(`${apiUrl}/orders`, { headers }),
-            fetch(
-              `${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`,
-              { headers }
-            ),
-          ]);
+      // Set state
+      setStats({
+        totalKambing: kambingsData.length,
+        totalMaterial: materialsData.length,
+        totalCustomer: usersData.filter((u: any) => u.role === "customer").length,
+        totalOrdersBulanIni: ordersData.length,
+        totalRevenueBulanIni: financeData?.omset?.total ?? 0,
+        totalProfitBulanIni: financeData?.profit?.total ?? 0,
+      });
 
-        const kambings = await kambingsRes.json();
-        const materials = await materialsRes.json();
-        const users = await usersRes.json();
-        const orders = await ordersRes.json();
-        const finance = financeRes.ok ? await financeRes.json() : { data: null };
+      setRecentOrders(allRecentOrders);
 
-        const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
-        const materialsData = Array.isArray(materials) ? materials : materials.data || [];
-        const usersData = Array.isArray(users) ? users : users.data || [];
-
-        let ordersData: any[] = [];
-        if (Array.isArray(orders)) {
-          ordersData = orders;
-        } else if (orders?.data?.data && Array.isArray(orders.data.data)) {
-          ordersData = orders.data.data;
-        } else if (orders?.data && Array.isArray(orders.data)) {
-          ordersData = orders.data;
-        }
-
-        const ordersThisMonth = ordersData.filter((order: any) => {
-          const orderDate = dayjs(
-            order.tanggalVerifikasi ||
-              order.tanggal_verifikasi ||
-              order.tanggalOrder ||
-              order.tanggal_order ||
-              order.created_at
-          );
-          const status = order.statusPembayaran || order.status_pembayaran || order.status;
-          return (
-            orderDate.month() + 1 === currentMonth &&
-            orderDate.year() === currentYear &&
-            status === "selesai"
-          );
-        });
-
-        const financeData = finance?.data?.ringkasan;
-
-        setStats({
-          totalKambing: kambingsData?.length || 0,
-          totalMaterial: materialsData?.length || 0,
-          totalCustomer: usersData?.filter((u: any) => u.role === "customer").length || 0,
-          totalOrdersBulanIni: ordersThisMonth.length,
-          totalRevenueBulanIni: financeData?.omset?.total ?? 0,
-          totalProfitBulanIni: financeData?.profit?.total ?? 0,
-        });
-
-        setRecentKambings(kambingsData?.slice(0, 5) || []);
-        setRecentMaterials(materialsData?.slice(0, 5) || []);
-        setRecentOrders(ordersThisMonth.slice(0, 5) || []);
-        setStatsLoading(false);
-      } catch (error: any) {
-        setError(error?.message || "Gagal memuat data dashboard");
-        setStatsLoading(false);
-      }
-    };
-
-    fetchStats();
+      // Fetch kolam status separately
+      setKolamLoading(true);
+      const kolamData = await fetchKolamStatus(apiUrl, headers);
+      setKolamStatus(kolamData);
+      setKolamLoading(false);
+      setStatsLoading(false);
+    } catch (error: any) {
+      console.error("Dashboard fetch error:", error);
+      setError(error?.message || "Gagal memuat data dashboard");
+      setStatsLoading(false);
+      setKolamLoading(false);
+    }
   }, [apiUrl, currentMonth, currentYear, isCustomer]);
 
-  if (identityLoading || statsLoading) {
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // 🔧 MEMOIZED VALUES
+  const isLoading = useMemo(() => 
+    identityLoading || statsLoading, 
+    [identityLoading, statsLoading]
+  );
+
+  const recentOrdersColumns = useMemo(() => [
+    {
+      title: "No.",
+      key: "no",
+      width: 50,
+      render: (_text: any, _record: OrderData, index: number) => (
+        <Text strong>#{index + 1}</Text>
+      ),
+    },
+    {
+      title: "Customer",
+      dataIndex: ["user", "fullname"],
+      key: "customer",
+      render: (text: string) => text || "-",
+    },
+    {
+      title: "Total",
+      dataIndex: "totalHarga",
+      key: "totalHarga",
+      render: (harga: number) => (
+        <Text strong>{formatCurrency(harga)}</Text>
+      ),
+    },
+    {
+      title: "Tanggal",
+      dataIndex: "tanggalOrder",
+      key: "tanggalOrder",
+      render: (date: string) => date ? dayjs(date).format("DD MMM YYYY") : "-",
+    },
+    {
+      title: "Status",
+      dataIndex: "statusPembayaran",
+      key: "statusPembayaran",
+      render: (status: string) => (
+        <Tag color={getStatusColor(status)}>
+          {status || "-"}
+        </Tag>
+      ),
+    },
+  ], []);
+
+  const kolamColumns = useMemo(() => [
+    {
+      title: "No. Kolam",
+      dataIndex: "nomor_kolam",
+      key: "nomor_kolam",
+      render: (text: string) => <Text strong>Kolam {text}</Text>,
+    },
+    {
+      title: "Bibit",
+      dataIndex: "jumlah_bibit",
+      key: "jumlah_bibit",
+      align: "right" as const,
+      render: (value: number) => `${value.toLocaleString("id-ID")} ekor`,
+    },
+    {
+      title: "Hari Ke-",
+      dataIndex: "hari_ke",
+      key: "hari_ke",
+      align: "center" as const,
+      render: (value: number) => (
+        <Text strong style={{ color: "#1890ff" }}>
+          {value} hari
+        </Text>
+      ),
+    },
+    {
+      title: "Tanggal Panen",
+      dataIndex: "tanggal_panen",
+      key: "tanggal_panen",
+      render: (date: string) => dayjs(date).format("DD MMM YYYY"),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: KolamStatus["status"]) => (
+        <Tag color={getStatusColor(status)} style={{ fontWeight: 600 }}>
+          {status === "siap_panen" ? "🔴 SIAP PANEN" : "🟠 AKAN PANEN"}
+        </Tag>
+      ),
+    },
+  ], []);
+
+  // 🔧 RENDER FUNCTIONS
+  const renderKPICards = useMemo(() => (
+    <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+      {[
+        { title: "🐐 Total Kambing", value: stats?.totalKambing || 0, suffix: "Ekor", color: "#ff7a45" },
+        { title: "📦 Total Material", value: stats?.totalMaterial || 0, suffix: "Produk", color: "#52c41a" },
+        { title: "👥 Total Customer", value: stats?.totalCustomer || 0, suffix: "Orang", color: "#1890ff" },
+        { title: "🛒 Total Pesanan", value: stats?.totalOrdersBulanIni || 0, suffix: "Order", color: "#faad14" },
+        { 
+          title: `💰 Omset ${dayjs().format("MMM")}`, 
+          value: stats?.totalRevenueBulanIni || 0, 
+          prefix: "Rp ", 
+          color: "#f5222d",
+          formatter: (v: number) => formatCurrency(v)
+        },
+        { 
+          title: `📈 Profit ${dayjs().format("MMM")}`, 
+          value: stats?.totalProfitBulanIni || 0, 
+          prefix: "Rp ", 
+          color: "#52c41a",
+          formatter: (v: number) => formatCurrency(v)
+        },
+      ].map((item, index) => (
+        <Col xs={24} sm={12} lg={8} key={index}>
+          <Card hoverable>
+            <Statistic
+              title={item.title}
+              value={item.value}
+              valueStyle={{ color: item.color }}
+              suffix={item.suffix}
+              prefix={item.prefix}
+              formatter={item.formatter ? (value) => item.formatter!(value as number) : undefined}
+            />
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  ), [stats]);
+
+  // 🔧 LOADING STATE
+  if (isLoading) {
     return (
       <Row gutter={[16, 16]}>
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <Col xs={24} sm={12} lg={8} key={i}>
             <Skeleton active paragraph={{ rows: 2 }} />
           </Col>
@@ -182,15 +404,17 @@ export const Dashboard = () => {
         showIcon
         style={{ marginBottom: 16 }}
         closable
+        onClose={() => setError(null)}
       />
     );
   }
 
+  // 🔧 MAIN RENDER
   return (
     <div style={{ padding: "24px 0" }}>
       {isAdmin && (
         <>
-          {/* Header Section */}
+          {/* Header */}
           <Card
             style={{
               background: "#2c595a",
@@ -208,97 +432,13 @@ export const Dashboard = () => {
                   Periode: <strong>{dayjs().format("MMMM YYYY")}</strong>
                 </Text>
               </Col>
-              <Col xs={24} sm={12} style={{ textAlign: "right" }}>
-                {/* <Button
-                  type="primary"
-                  onClick={() => push("/dashboard/finance")}
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    border: "1px solid white",
-                  }}
-                >
-                  Detail Keuangan <ArrowRightOutlined />
-                </Button> */}
-              </Col>
             </Row>
           </Card>
 
-          {/* KPI Cards */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title="🐐 Total Kambing"
-                  value={stats?.totalKambing || 0}
-                  valueStyle={{ color: "#ff7a45" }}
-                  suffix="Ekor"
-                />
-              </Card>
-            </Col>
+          {/* KPI Statistics */}
+          {renderKPICards}
 
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title="📦 Total Material"
-                  value={stats?.totalMaterial || 0}
-                  valueStyle={{ color: "#52c41a" }}
-                  suffix="Produk"
-                />
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title="👥 Total Customer"
-                  value={stats?.totalCustomer || 0}
-                  valueStyle={{ color: "#1890ff" }}
-                  suffix="Orang"
-                />
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title={`🛒 Pesanan ${dayjs().format("MMM")}`}
-                  value={stats?.totalOrdersBulanIni || 0}
-                  valueStyle={{ color: "#faad14" }}
-                  suffix="Order"
-                />
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title={`💰 Revenue ${dayjs().format("MMM")}`}
-                  value={stats?.totalRevenueBulanIni || 0}
-                  prefix="Rp "
-                  valueStyle={{ color: "#f5222d", fontSize: 16 }}
-                  formatter={(value: any) =>
-                    `${(value as number).toLocaleString("id-ID")}`
-                  }
-                />
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} lg={8}>
-              <Card hoverable className="stat-card">
-                <Statistic
-                  title={`📈 Profit ${dayjs().format("MMM")}`}
-                  value={stats?.totalProfitBulanIni || 0}
-                  prefix="Rp "
-                  valueStyle={{ color: "#52c41a", fontSize: 16 }}
-                  formatter={(value: any) =>
-                    `${(value as number).toLocaleString("id-ID")}`
-                  }
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Charts Row 1 */}
+          {/* Charts */}
           <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24} lg={12}>
               <FinanceComparison />
@@ -308,132 +448,20 @@ export const Dashboard = () => {
             </Col>
           </Row>
 
-          {/* Charts Row 3 - ✅ ADD BAR CHART */}
           <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24}>
               <BarChartRevenue />
             </Col>
           </Row>
 
-          {/* Recent Data Tables */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-            <Col xs={24} lg={12}>
-              <Card
-                title={
-                  <Space>
-                    <ThunderboltFilled style={{ color: "#ff7a45" }} />
-                    <span>Kambing Terbaru</span>
-                  </Space>
-                }
-                extra={
-                  <Button type="link" onClick={() => push("/kambings")}>
-                    Lihat Semua <ArrowRightOutlined />
-                  </Button>
-                }
-              >
-                {recentKambings.length > 0 ? (
-                  <Table
-                    dataSource={recentKambings}
-                    columns={[
-                      {
-                        title: "Nama",
-                        dataIndex: "namaKambing",
-                        key: "namaKambing",
-                        render: (text) => <Text strong>{text}</Text>,
-                      },
-                      {
-                        title: "Umur",
-                        dataIndex: "umur",
-                        key: "umur",
-                        render: (umur) => <span>{umur} bln</span>,
-                      },
-                      {
-                        title: "Harga Beli",
-                        dataIndex: "hargaBeli",
-                        key: "hargaBeli",
-                        render: (harga) => (
-                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                        ),
-                      },
-                      {
-                        title: "Harga",
-                        dataIndex: "harga",
-                        key: "harga",
-                        render: (harga) => (
-                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                        ),
-                      },
-                    ]}
-                    pagination={false}
-                    size="small"
-                    rowKey={(record) => record.id_kambing}
-                  />
-                ) : (
-                  <Empty description="Belum ada kambing" />
-                )}
-              </Card>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Card
-                title={
-                  <Space>
-                    <CodeSandboxOutlined style={{ color: "#52c41a" }} />
-                    <span>Material Terbaru</span>
-                  </Space>
-                }
-                extra={
-                  <Button type="link" onClick={() => push("/materials")}>
-                    Lihat Semua <ArrowRightOutlined />
-                  </Button>
-                }
-              >
-                {recentMaterials.length > 0 ? (
-                  <Table
-                    dataSource={recentMaterials}
-                    columns={[
-                      {
-                        title: "Nama",
-                        dataIndex: "namaMaterial",
-                        key: "namaMaterial",
-                        render: (text) => <Text strong>{text}</Text>,
-                      },
-                      {
-                        title: "Harga Beli",
-                        dataIndex: "hargaBeli",
-                        key: "hargaBeli",
-                        render: (harga) => (
-                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                        ),
-                      },
-                      {
-                        title: "Harga Jual",
-                        dataIndex: "hargaSatuan",
-                        key: "hargaSatuan",
-                        render: (harga) => (
-                          <Text>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                        ),
-                      },
-                    ]}
-                    pagination={false}
-                    size="small"
-                    rowKey={(record) => record.id_material}
-                  />
-                ) : (
-                  <Empty description="Belum ada material" />
-                )}
-              </Card>
-            </Col>
-          </Row>
-
           {/* Recent Orders */}
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
             <Col xs={24}>
               <Card
                 title={
                   <Space>
                     <ShoppingCartOutlined style={{ color: "#faad14" }} />
-                    <span>Pesanan Terbaru (Selesai)</span>
+                    <span>Pesanan Terbaru</span>
                   </Space>
                 }
                 extra={
@@ -445,51 +473,45 @@ export const Dashboard = () => {
                 {recentOrders.length > 0 ? (
                   <Table
                     dataSource={recentOrders}
-                    columns={[
-                      {
-                        title: "No.",
-                        key: "no",
-                        width: 50,
-                        render: (_text, _record, index) => (
-                          <Text strong>#{index + 1}</Text>
-                        ),
-                      },
-                      {
-                        title: "Customer",
-                        dataIndex: ["user", "fullname"],
-                        key: "customer",
-                        render: (text) => text || "-",
-                      },
-                      {
-                        title: "Total",
-                        dataIndex: "totalHarga",
-                        key: "totalHarga",
-                        render: (harga) => (
-                          <Text strong>Rp {(harga || 0).toLocaleString("id-ID")}</Text>
-                        ),
-                      },
-                      {
-                        title: "Tanggal",
-                        dataIndex: "tanggalOrder",
-                        key: "tanggalOrder",
-                        render: (date) =>
-                          date ? dayjs(date).format("DD MMM YYYY") : "-",
-                      },
-                      {
-                        title: "Status",
-                        dataIndex: "statusPembayaran",
-                        key: "statusPembayaran",
-                        render: (status) => (
-                          <Tag color="green">{status}</Tag>
-                        ),
-                      },
-                    ]}
+                    columns={recentOrdersColumns}
                     pagination={false}
                     size="small"
-                    rowKey={(record) => record.id_order}
+                    rowKey="id_order"
                   />
                 ) : (
-                  <Empty description="Belum ada pesanan bulan ini" />
+                  <Empty description="Belum ada pesanan" />
+                )}
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Kolam Status */}
+          <Row gutter={[16, 16]}>
+            <Col xs={24}>
+              <Card
+                title={
+                  <Space>
+                    <ThunderboltFilled style={{ color: "#ff7a45" }} />
+                    <span>Kolam Akan Panen / Siap Panen</span>
+                  </Space>
+                }
+                loading={kolamLoading}
+                extra={
+                  <Button type="link" onClick={() => push("/leles")}>
+                    Kelola Kolam <ArrowRightOutlined />
+                  </Button>
+                }
+              >
+                {kolamStatus.length > 0 ? (
+                  <Table
+                    dataSource={kolamStatus}
+                    columns={kolamColumns}
+                    pagination={false}
+                    size="small"
+                    rowKey="id_kolam"
+                  />
+                ) : (
+                  <Empty description="Tidak ada kolam yang akan/siap panen" />
                 )}
               </Card>
             </Col>

@@ -118,9 +118,10 @@ export const LeleShow = () => {
   const onSubmitPanen = async (values: any) => {
     try {
       const formData = new FormData();
-      formData.append("jumlah_panen", values.jumlah_panen);
+      // ✅ REMOVE: jumlah_panen
       formData.append("total_berat_kg", values.total_berat_kg);
       formData.append("harga_jual_total", values.harga_jual_total);
+      formData.append("potong_pakan", values.potong_pakan); // ✅ ADD
       formData.append("tanggal_panen", dayjs(values.tanggal_panen).format("YYYY-MM-DD"));
 
       if (values.image?.[0]) {
@@ -259,16 +260,7 @@ export const LeleShow = () => {
 
       <Modal title="Form Panen Lele" open={isModalVisible} onCancel={() => setIsModalVisible(false)} footer={null} width={700}>
         <Form form={form} layout="vertical" onFinish={onSubmitPanen} style={{ marginTop: 24 }}>
-          <Form.Item
-            name="jumlah_panen"
-            label="Jumlah Panen (ekor)"
-            rules={[
-              { required: true, message: "Masukkan jumlah panen" },
-              { pattern: /^[0-9]+$/, message: "Hanya boleh angka" },
-            ]}
-          >
-            <Input type="number" placeholder="Contoh: 9500" min="0" />
-          </Form.Item>
+          {/* ✅ REMOVE: Jumlah Panen field */}
 
           <Form.Item
             name="total_berat_kg"
@@ -290,6 +282,18 @@ export const LeleShow = () => {
             ]}
           >
             <Input type="number" placeholder="Contoh: 2300000" min="0" />
+          </Form.Item>
+
+          {/* ✅ ADD: Potong Pakan field */}
+          <Form.Item
+            name="potong_pakan"
+            label="Potong Pakan (Rp)"
+            rules={[
+              { required: true, message: "Masukkan potong pakan" },
+              { pattern: /^[0-9]+$/, message: "Hanya boleh angka" },
+            ]}
+          >
+            <Input type="number" placeholder="Contoh: 300000" min="0" />
           </Form.Item>
 
           <Form.Item

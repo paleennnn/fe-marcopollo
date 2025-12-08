@@ -38,63 +38,65 @@ interface UserData {
   is_verified?: boolean;
 }
 
+const getUserInfo = (): UserData | null => {
+  try {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+
+    const parsed = JSON.parse(userStr);
+    const userData = parsed.user || parsed;
+
+    return {
+      id: userData.id,
+      fullname: userData.fullname || userData.name || "",
+      email: userData.email || "",
+      phone: userData.phone || userData.telepon || "",
+      address: userData.address || userData.alamat || "",
+      username: userData.username || userData.nama_pengguna || "",
+      role: userData.role || "customer",
+      createdAt: userData.createdAt || userData.created_at || "",
+      updatedAt: userData.updatedAt || userData.updated_at || "",
+      is_verified: Boolean(userData.is_verified),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const getBadgeColor = (role: string): string => {
+  return role === "admin" ? "blue" : "green";
+};
+
+const formatDate = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return dateString;
+  }
+};
+
 export const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ FUNCTION UNTUK GET USER INFO DARI LOCALSTORAGE (SAMA SEPERTI SEBELUMNYA)
-  const getUserInfo = () => {
-    try {
-      const userStr = localStorage.getItem("user");
-      console.log("📝 Raw user data from localStorage:", userStr);
-
-      if (!userStr) {
-        console.log("❌ No user data found in localStorage");
-        return null;
-      }
-
-      const parsed = JSON.parse(userStr);
-      console.log("📝 Parsed user data:", parsed);
-
-      // Handle berbagai format response
-      const userData = parsed.user ? parsed.user : parsed;
-
-      const userInfo: UserData = {
-        id: userData.id,
-        fullname: userData.fullname || userData.name || "",
-        email: userData.email || "",
-        phone: userData.phone || userData.telepon || "",
-        address: userData.address || userData.alamat || "",
-        username: userData.username || userData.nama_pengguna || "",
-        role: userData.role || "customer",
-        createdAt:
-          userData.createdAt || userData.created_at || userData.createAut || "",
-        updatedAt: userData.updatedAt || userData.updated_at || "",
-        is_verified: userData.is_verified || false,
-      };
-
-      console.log("👤 Extracted user info:", userInfo);
-      return userInfo;
-    } catch (error) {
-      console.error("❌ Error parsing user data:", error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     const loadUserData = () => {
       try {
-        setLoading(true);
         const userInfo = getUserInfo();
-
         if (userInfo) {
           setUser(userInfo);
         } else {
           setError("Tidak dapat memuat data pengguna");
         }
-      } catch (err) {
-        console.error("Error loading user data:", err);
+      } catch {
         setError("Terjadi kesalahan saat memuat data");
       } finally {
         setLoading(false);
@@ -104,7 +106,6 @@ export const ProfilePage: React.FC = () => {
     loadUserData();
   }, []);
 
-  // Avatar generator
   const avatar = useMemo(() => {
     return createAvatar(funEmoji, {
       seed: user?.fullname || user?.username || "User",
@@ -113,42 +114,9 @@ export const ProfilePage: React.FC = () => {
     }).toDataUri();
   }, [user?.fullname, user?.username]);
 
-  const getBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "blue";
-      case "customer":
-        return "green";
-      default:
-        return "default";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "50vh",
-        }}
-      >
+      <div style={styles.loadingContainer}>
         <Spin size="large" />
       </div>
     );
@@ -156,7 +124,7 @@ export const ProfilePage: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ padding: "24px" }}>
+      <div style={styles.padding}>
         <Alert
           message="Error"
           description={error}
@@ -170,7 +138,7 @@ export const ProfilePage: React.FC = () => {
 
   if (!user) {
     return (
-      <div style={{ padding: "24px" }}>
+      <div style={styles.padding}>
         <Card>
           <Alert
             message="Data Tidak Ditemukan"
@@ -184,49 +152,36 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div style={styles.padding}>
       <Card
         title={<Title level={3}>Profil Saya</Title>}
         bordered={false}
-        style={{ marginBottom: 24 }}
+        style={styles.mainCard}
       >
         <Row gutter={[24, 24]}>
-          {/* Bagian Kiri: Avatar & Info Akun */}
           <Col xs={24} md={8}>
-            <Card
-              bordered={false}
-              style={{
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                height: "100%",
-              }}
-            >
-              <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <Card bordered={false} style={styles.avatarCard}>
+              <div style={styles.avatarContainer}>
                 <Avatar
                   size={100}
                   src={avatar}
                   alt={user.username}
-                  style={{
-                    backgroundColor: getBadgeColor(user.role),
-                    marginBottom: 16,
-                  }}
+                  style={styles.avatar}
                   icon={<UserOutlined />}
                 />
-                <Title level={3} style={{ marginTop: 16, marginBottom: 8 }}>
+                <Title level={3} style={styles.nameTitle}>
                   {user.fullname || user.username}
                 </Title>
-                <Tag
-                  color={getBadgeColor(user.role)}
-                  style={{ fontSize: "12px", padding: "4px 8px" }}
-                >
+                <Tag color={getBadgeColor(user.role)} style={styles.roleTag}>
                   {user.role === "admin" ? "Administrator" : "Customer"}
                 </Tag>
               </div>
 
-              <Divider style={{ margin: "16px 0" }} />
+              <Divider style={styles.divider} />
 
               <Descriptions column={1} size="small">
                 <Descriptions.Item label="Username">
-                  <Text strong style={{ fontSize: "14px" }}>
+                  <Text strong style={styles.text}>
                     @{user.username}
                   </Text>
                 </Descriptions.Item>
@@ -238,24 +193,24 @@ export const ProfilePage: React.FC = () => {
                 <Descriptions.Item
                   label={
                     <span>
-                      <CalendarOutlined style={{ marginRight: 4 }} />
+                      <CalendarOutlined style={styles.icon} />
                       Dibuat pada
                     </span>
                   }
                 >
-                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                  <Text type="secondary" style={styles.smallText}>
                     {formatDate(user.createdAt)}
                   </Text>
                 </Descriptions.Item>
                 <Descriptions.Item
                   label={
                     <span>
-                      <CalendarOutlined style={{ marginRight: 4 }} />
+                      <CalendarOutlined style={styles.icon} />
                       Terakhir diperbarui
                     </span>
                   }
                 >
-                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                  <Text type="secondary" style={styles.smallText}>
                     {formatDate(user.updatedAt)}
                   </Text>
                 </Descriptions.Item>
@@ -263,35 +218,27 @@ export const ProfilePage: React.FC = () => {
             </Card>
           </Col>
 
-          {/* Bagian Kanan: Detail User */}
           <Col xs={24} md={16}>
             <Card
               title="Informasi Pengguna"
               bordered={false}
-              style={{
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                height: "100%",
-              }}
+              style={styles.infoCard}
             >
               <Descriptions
                 bordered
                 column={1}
                 size="middle"
-                labelStyle={{
-                  fontWeight: 600,
-                  width: "150px",
-                  backgroundColor: "#fafafa",
-                }}
+                labelStyle={styles.labelStyle}
               >
                 <Descriptions.Item
                   label={
                     <span>
-                      <UserOutlined style={{ marginRight: 8 }} />
+                      <UserOutlined style={styles.icon} />
                       Nama Lengkap
                     </span>
                   }
                 >
-                  <Text strong style={{ fontSize: "14px" }}>
+                  <Text strong style={styles.text}>
                     {user.fullname || "-"}
                   </Text>
                 </Descriptions.Item>
@@ -299,20 +246,15 @@ export const ProfilePage: React.FC = () => {
                 <Descriptions.Item
                   label={
                     <span>
-                      <MailOutlined style={{ marginRight: 8 }} />
+                      <MailOutlined style={styles.icon} />
                       Email
                     </span>
                   }
                 >
                   <div>
-                    <Text style={{ fontSize: "14px" }}>
-                      {user.email || "-"}
-                    </Text>
+                    <Text style={styles.text}>{user.email || "-"}</Text>
                     {user.is_verified && (
-                      <Tag
-                        color="green"
-                        style={{ marginLeft: 8, fontSize: "10px" }}
-                      >
+                      <Tag color="green" style={styles.verifiedTag}>
                         Terverifikasi
                       </Tag>
                     )}
@@ -322,38 +264,28 @@ export const ProfilePage: React.FC = () => {
                 <Descriptions.Item
                   label={
                     <span>
-                      <PhoneOutlined style={{ marginRight: 8 }} />
+                      <PhoneOutlined style={styles.icon} />
                       No. Telepon
                     </span>
                   }
                 >
-                  <Text style={{ fontSize: "14px" }}>{user.phone || "-"}</Text>
+                  <Text style={styles.text}>{user.phone || "-"}</Text>
                 </Descriptions.Item>
 
                 <Descriptions.Item
                   label={
                     <span>
-                      <HomeOutlined style={{ marginRight: 8 }} />
+                      <HomeOutlined style={styles.icon} />
                       Alamat
                     </span>
                   }
                 >
-                  <Text style={{ fontSize: "14px" }}>
-                    {user.address || "-"}
-                  </Text>
+                  <Text style={styles.text}>{user.address || "-"}</Text>
                 </Descriptions.Item>
               </Descriptions>
 
-              {/* Additional Info */}
-              <div
-                style={{
-                  marginTop: 24,
-                  padding: 16,
-                  backgroundColor: "#f0f8ff",
-                  borderRadius: 6,
-                }}
-              >
-                <Text type="secondary" style={{ fontSize: "12px" }}>
+              <div style={styles.infoNote}>
+                <Text type="secondary" style={styles.noteText}>
                   💡 Untuk mengubah informasi profil, silakan hubungi
                   administrator.
                 </Text>
@@ -364,4 +296,73 @@ export const ProfilePage: React.FC = () => {
       </Card>
     </div>
   );
+};
+
+const styles = {
+  loadingContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "50vh",
+  } as const,
+  padding: {
+    padding: "24px",
+  } as const,
+  mainCard: {
+    marginBottom: 24,
+  } as const,
+  avatarCard: {
+    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+    height: "100%",
+  } as const,
+  avatarContainer: {
+    textAlign: "center" as const,
+    marginBottom: 24,
+  } as const,
+  avatar: {
+    backgroundColor: "#1890ff",
+    marginBottom: 16,
+  } as const,
+  nameTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+  } as const,
+  roleTag: {
+    fontSize: "12px",
+    padding: "4px 8px",
+  } as const,
+  divider: {
+    margin: "16px 0",
+  } as const,
+  icon: {
+    marginRight: 8,
+  } as const,
+  text: {
+    fontSize: "14px",
+  } as const,
+  smallText: {
+    fontSize: "12px",
+  } as const,
+  infoCard: {
+    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+    height: "100%",
+  } as const,
+  labelStyle: {
+    fontWeight: 600,
+    width: "150px",
+    backgroundColor: "#fafafa",
+  } as const,
+  verifiedTag: {
+    marginLeft: 8,
+    fontSize: "10px",
+  } as const,
+  infoNote: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: "#f0f8ff",
+    borderRadius: 6,
+  } as const,
+  noteText: {
+    fontSize: "12px",
+  } as const,
 };

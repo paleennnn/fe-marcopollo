@@ -8,6 +8,36 @@ import dayjs from "dayjs";
 
 const { Text } = Typography;
 
+const getDataSource = (tableProps: any): any[] => {
+  if (!tableProps?.dataSource) return [];
+  
+  if (Array.isArray(tableProps.dataSource?.data)) {
+    return tableProps.dataSource.data;
+  }
+  
+  if (Array.isArray(tableProps.dataSource)) {
+    return tableProps.dataSource;
+  }
+  
+  return [];
+};
+
+const calculateProfit = (record: any): number => {
+  const omset = Number(record.hargaJualTotal) || 0;
+  const hargaBeli = Number(record.hargaBeliTotal) || 0;
+  const potongPakan = Number(record.potongPakan) || 0;
+  return omset - (hargaBeli + potongPakan);
+};
+
+const renderProfit = (record: any) => {
+  const profit = calculateProfit(record);
+  return (
+    <Tag color={profit >= 0 ? "green" : "red"}>
+      Rp {profit.toLocaleString("id-ID")}
+    </Tag>
+  );
+};
+
 export const RiwayatPanenList = () => {
   const { tableProps, isLoading } = useTable({
     resource: "leles-riwayat-panen",
@@ -17,30 +47,16 @@ export const RiwayatPanenList = () => {
     },
   });
 
-  // ✅ FIX: Handle nested data structure
-  let dataSource = [];
-  
-  if (tableProps?.dataSource) {
-    // Jika dataSource adalah object dengan data property
-    if (Array.isArray(tableProps.dataSource?.data)) {
-      dataSource = tableProps.dataSource.data;
-    }
-    // Jika dataSource langsung array
-    else if (Array.isArray(tableProps.dataSource)) {
-      dataSource = tableProps.dataSource;
-    }
-  }
-
-  console.log("📊 Final dataSource:", dataSource);
-  console.log("📊 Data count:", dataSource.length);
+  const dataSource = React.useMemo(() => getDataSource(tableProps), [tableProps]);
+  const rowCount = dataSource.length;
 
   if (isLoading) {
     return (
       <List
         title={
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <HistoryOutlined style={{ fontSize: 24, marginRight: 12 }} />
-            <Text strong style={{ fontSize: 20 }}>
+          <div style={styles.titleContainer}>
+            <HistoryOutlined style={styles.titleIcon} />
+            <Text strong style={styles.titleText}>
               Loading...
             </Text>
           </div>
@@ -55,112 +71,126 @@ export const RiwayatPanenList = () => {
   return (
     <List
       title={
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <HistoryOutlined style={{ fontSize: 24, marginRight: 12 }} />
-          <Text strong style={{ fontSize: 20 }}>
-            Riwayat Panen Lele ({dataSource.length} Data)
+        <div style={styles.titleContainer}>
+          <HistoryOutlined style={styles.titleIcon} />
+          <Text strong style={styles.titleText}>
+            Riwayat Panen Lele ({rowCount} Data)
           </Text>
         </div>
       }
       headerButtons={() => null}
     >
-      {dataSource.length === 0 ? (
+      {rowCount === 0 ? (
         <Empty description="Tidak ada data riwayat panen" />
       ) : (
         <Table
           {...tableProps}
-          dataSource={dataSource}  // ✅ Gunakan extracted dataSource
-          rowKey={(record) => record.idPanen}
+          dataSource={dataSource}
+          rowKey="idPanen"
           variant="outlined"
           pagination={{
             ...tableProps.pagination,
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} data`,
           }}
-        >
-          <Table.Column
-            title="No."
-            width={60}
-            render={(_, __, index) => {
-              const { current = 1, pageSize = 10 } = tableProps.pagination || {};
-              return (current - 1) * pageSize + index + 1;
-            }}
-          />
-          <Table.Column
-            dataIndex="nomorKolam"
-            title="Kolam"
-            sorter={(a, b) => a.nomorKolam - b.nomorKolam}
-            render={(value) => <Text strong>Kolam {value}</Text>}
-          />
-          {/* <Table.Column dataIndex="ukuran" title="Ukuran" /> */}
-          <Table.Column
-            dataIndex="jumlahBibit"
-            title="Bibit Awal"
-            align="right"
-            render={(value) => `${Number(value)?.toLocaleString("id-ID")} ekor`}
-          />
-          <Table.Column
-            dataIndex="jumlahPanen"
-            title="Jumlah Panen"
-            align="right"
-            render={(value) => `${Number(value)?.toLocaleString("id-ID")} ekor`}
-          />
-          <Table.Column
-            dataIndex="totalBeratKg"
-            title="Berat Total"
-            align="right"
-            render={(value) => `${Number(value)?.toLocaleString("id-ID")} kg`}
-          />
-          <Table.Column
-            dataIndex="hargaBeliTotal"
-            title="Modal"
-            align="right"
-            render={(value) => (
-              <Text type="secondary">
-                Rp {Number(value)?.toLocaleString("id-ID")}
-              </Text>
-            )}
-          />
-          <Table.Column
-            dataIndex="hargaJualTotal"
-            title="Omset"
-            align="right"
-            render={(value) => (
-              <Text strong style={{ color: "#1890ff" }}>
-                Rp {Number(value)?.toLocaleString("id-ID")}
-              </Text>
-            )}
-          />
-          <Table.Column
-            dataIndex="profit"
-            title="Profit"
-            align="right"
-            render={(value) => (
-              <Tag color={Number(value) >= 0 ? "green" : "red"}>
-                Rp {Number(value)?.toLocaleString("id-ID")}
-              </Tag>
-            )}
-          />
-          <Table.Column
-            dataIndex="tanggalPanen"
-            title="Tanggal Panen"
-            sorter={(a, b) =>
-              dayjs(a.tanggalPanen).unix() - dayjs(b.tanggalPanen).unix()
-            }
-            render={(value) => dayjs(value).format("DD MMM YYYY")}
-          />
-          <Table.Column
-            title="Aksi"
-            width={100}
-            fixed="right"
-            render={(_, record: any) => (
-              <Space>
-                <ShowButton hideText size="small" recordItemId={record.idPanen} />
-              </Space>
-            )}
-          />
-        </Table>
+          columns={[
+            {
+              title: "No.",
+              width: 60,
+              render: (_, __, index) => {
+                const { current = 1, pageSize = 10 } = tableProps.pagination || {};
+                return (current - 1) * pageSize + index + 1;
+              },
+            },
+            {
+              dataIndex: "nomorKolam",
+              title: "Kolam",
+              sorter: (a, b) => a.nomorKolam - b.nomorKolam,
+              render: (value) => <Text strong>Kolam {value}</Text>,
+            },
+            {
+              dataIndex: "jumlahBibit",
+              title: "Bibit Awal",
+              align: "right",
+              render: (value) => `${Number(value || 0).toLocaleString("id-ID")} ekor`,
+            },
+            {
+              dataIndex: "totalBeratKg",
+              title: "Berat Total",
+              align: "right",
+              render: (value) => `${Number(value || 0).toLocaleString("id-ID")} kg`,
+            },
+            {
+              dataIndex: "hargaBeliTotal",
+              title: "Modal",
+              align: "right",
+              render: (value) => (
+                <Text type="secondary">
+                  Rp {Number(value || 0).toLocaleString("id-ID")}
+                </Text>
+              ),
+            },
+            {
+              dataIndex: "potongPakan",
+              title: "Potong Pakan",
+              align: "right",
+              render: (value) => (
+                <Text type="warning">
+                  Rp {Number(value || 0).toLocaleString("id-ID")}
+                </Text>
+              ),
+            },
+            {
+              dataIndex: "hargaJualTotal",
+              title: "Omset",
+              align: "right",
+              render: (value) => (
+                <Text strong style={{ color: "#1890ff" }}>
+                  Rp {Number(value || 0).toLocaleString("id-ID")}
+                </Text>
+              ),
+            },
+            {
+              dataIndex: "profit",
+              title: "Profit",
+              align: "right",
+              sorter: (a, b) => calculateProfit(a) - calculateProfit(b),
+              render: (_, record) => renderProfit(record),
+            },
+            {
+              dataIndex: "tanggalPanen",
+              title: "Tanggal Panen",
+              sorter: (a, b) =>
+                dayjs(a.tanggalPanen).unix() - dayjs(b.tanggalPanen).unix(),
+              render: (value) => dayjs(value).format("DD MMM YYYY"),
+            },
+            {
+              title: "Aksi",
+              width: 100,
+              fixed: "right",
+              render: (_, record) => (
+                <Space>
+                  <ShowButton hideText size="small" recordItemId={record.idPanen} />
+                </Space>
+              ),
+            },
+          ]}
+        />
       )}
     </List>
   );
 };
+
+const styles = {
+  titleContainer: {
+    display: "flex",
+    alignItems: "center",
+  },
+  titleIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  titleText: {
+    fontSize: 20,
+  },
+} as const;

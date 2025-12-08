@@ -192,7 +192,7 @@ export default function RootLayout({
                         {
                           name: "transaksi",
                           meta: {
-                            label: "Transaksi",
+                            label: "Manajemen Transaksi",
                             icon: <TransactionOutlined style={{ fontSize: "1.2em" }} />,
                           },
                         },
@@ -203,7 +203,7 @@ export default function RootLayout({
                           edit: "/orders/edit/:id",
                           meta: {
                             canDelete: true,
-                            label: "Manajemen Transaksi",
+                            label: "Transaksi",
                             icon: <FileTextOutlined style={{ fontSize: "1.2em" }} />,
                             parent: "transaksi",
                           },

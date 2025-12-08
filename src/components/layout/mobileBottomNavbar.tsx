@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   useMenu,
   useLink,
@@ -8,7 +8,7 @@ import {
   useTranslate,
   CanAccess,
 } from "@refinedev/core";
-import { Popover, Badge } from "antd";
+import { Popover } from "antd";
 import {
   HomeFilled,
   MoreOutlined,
@@ -16,31 +16,24 @@ import {
   ThunderboltFilled,
   CodeSandboxSquareFilled,
   LogoutOutlined,
+  AppstoreOutlined,
+  HistoryOutlined,
   FileTextOutlined,
   ShoppingCartOutlined,
   UsergroupAddOutlined,
+  DockerOutlined,
 } from "@ant-design/icons";
 
 export const MobileBottomNavbar: React.FC = () => {
-  const { menuItems } = useMenu();
   const Link = useLink();
-  const routerType = useRouterType();
-  const { warnWhen, setWarnWhen } = useWarnAboutChange();
-  const translate = useTranslate();
   const { mutate: mutateLogout } = useLogout();
   const [popoverVisible, setPopoverVisible] = useState(false);
 
-  // Function to handle popover visibility
-  const handlePopoverVisibleChange = (visible: boolean) => {
-    setPopoverVisible(visible);
-  };
-
-  // Function to close popover after menu item click
   const handleMenuItemClick = () => {
     setPopoverVisible(false);
   };
 
-  // More menu content untuk ADMIN
+  // More menu untuk ADMIN
   const adminMoreMenuContent = (
     <div className="flex flex-col gap-3 py-2">
       {/* Profil */}
@@ -56,7 +49,7 @@ export const MobileBottomNavbar: React.FC = () => {
         <span style={{ color: "rgba(44, 89, 90, 1)" }}>Profil</span>
       </Link>
 
-      {/* Users */}
+      {/* Pengguna */}
       <CanAccess resource="users" action="list">
         <Link
           to="/users"
@@ -71,11 +64,42 @@ export const MobileBottomNavbar: React.FC = () => {
         </Link>
       </CanAccess>
 
+      {/* Riwayat Panen */}
+      <CanAccess resource="leles-riwayat-panen" action="list">
+        <Link
+          to="/leles-riwayat-panen"
+          className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
+          onClick={handleMenuItemClick}
+        >
+          <HistoryOutlined
+            style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
+            className="mr-2"
+          />
+          <span style={{ color: "rgba(44, 89, 90, 1)" }}>Riwayat Panen</span>
+        </Link>
+      </CanAccess>
+
+      {/* Refunds */}
+      <CanAccess resource="refunds" action="list">
+        <Link
+          to="/refunds"
+          className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
+          onClick={handleMenuItemClick}
+        >
+          <FileTextOutlined
+            style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
+            className="mr-2"
+          />
+          <span style={{ color: "rgba(44, 89, 90, 1)" }}>Pengembalian</span>
+        </Link>
+      </CanAccess>
+
       {/* Logout */}
       <div
         className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer"
         onClick={() => {
           mutateLogout();
+          handleMenuItemClick();
         }}
       >
         <LogoutOutlined
@@ -87,14 +111,28 @@ export const MobileBottomNavbar: React.FC = () => {
     </div>
   );
 
-  // More menu content untuk CUSTOMER (hanya logout)
+  // More menu untuk CUSTOMER
   const customerMoreMenuContent = (
     <div className="flex flex-col gap-3 py-2">
+      {/* Profil */}
+      <Link
+        to="/profile"
+        className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
+        onClick={handleMenuItemClick}
+      >
+        <UserOutlined
+          style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
+          className="mr-2"
+        />
+        <span style={{ color: "rgba(44, 89, 90, 1)" }}>Profil</span>
+      </Link>
+
       {/* Logout */}
       <div
         className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer"
         onClick={() => {
           mutateLogout();
+          handleMenuItemClick();
         }}
       >
         <LogoutOutlined
@@ -109,7 +147,7 @@ export const MobileBottomNavbar: React.FC = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 h-16">
       <div className="flex justify-around items-center h-full px-1">
-        {/* Material */}
+        {/* Material Bangunan */}
         <CanAccess resource="materials" action="list">
           <Link
             to="/materials"
@@ -145,7 +183,7 @@ export const MobileBottomNavbar: React.FC = () => {
           </Link>
         </CanAccess>
 
-        {/* Dashboard (Center) */}
+        {/* Dashboard (Center - Prominent) */}
         <Link
           to="/dashboard"
           className="flex flex-col items-center justify-center w-1/5"
@@ -161,25 +199,43 @@ export const MobileBottomNavbar: React.FC = () => {
           </span>
         </Link>
 
-        {/* Menu untuk ADMIN: Lele */}
+        {/* Kolam Lele (Admin Only) */}
         <CanAccess resource="leles" action="list">
           <Link
             to="/leles"
             className="flex flex-col items-center justify-center w-1/5"
           >
-            <FileTextOutlined
+            <AppstoreOutlined
               style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
             />
             <span
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Lele
+              Kolam Lele
             </span>
           </Link>
         </CanAccess>
 
-        {/* Menu untuk ADMIN: Transaksi */}
+        {/* Keranjang Belanja (Customer Only) */}
+        <CanAccess resource="customer/keranjang" action="list">
+          <Link
+            to="/keranjang"
+            className="flex flex-col items-center justify-center w-1/5"
+          >
+            <ShoppingCartOutlined
+              style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
+            />
+            <span
+              className="text-xs mt-1 text-center"
+              style={{ color: "rgba(44, 89, 90, 1)" }}
+            >
+              Keranjang
+            </span>
+          </Link>
+        </CanAccess>
+
+        {/* Transaksi (Admin) / Pesanan Saya (Customer) */}
         <CanAccess resource="orders" action="list">
           <Link
             to="/orders"
@@ -197,10 +253,9 @@ export const MobileBottomNavbar: React.FC = () => {
           </Link>
         </CanAccess>
 
-        {/* Menu untuk CUSTOMER: Riwayat Pesanan */}
         <CanAccess resource="customer/orders" action="list">
           <Link
-            to="/customer/orders"
+            to="/customer-orders"
             className="flex flex-col items-center justify-center w-1/5"
           >
             <FileTextOutlined
@@ -210,42 +265,24 @@ export const MobileBottomNavbar: React.FC = () => {
               className="text-xs mt-1 text-center"
               style={{ color: "rgba(44, 89, 90, 1)" }}
             >
-              Riwayat
-            </span>
-          </Link>
-        </CanAccess>
-
-        {/* Menu untuk CUSTOMER: Profile */}
-        <CanAccess resource="customer/orders" action="list">
-          <Link
-            to="/profile"
-            className="flex flex-col items-center justify-center w-1/5"
-          >
-            <UserOutlined
-              style={{ fontSize: "1.5em", color: "rgba(44, 89, 90, 1)" }}
-            />
-            <span
-              className="text-xs mt-1 text-center"
-              style={{ color: "rgba(44, 89, 90, 1)" }}
-            >
-              Profil
+              Pesanan Saya
             </span>
           </Link>
         </CanAccess>
       </div>
 
-      {/* More button (floating) - HANYA UNTUK ADMIN */}
+      {/* More button (Floating) - ADMIN */}
       <CanAccess resource="users" action="list">
         <Popover
           content={adminMoreMenuContent}
           trigger="click"
           placement="topRight"
           open={popoverVisible}
-          onOpenChange={handlePopoverVisibleChange}
+          onOpenChange={setPopoverVisible}
           overlayClassName="bottom-nav-popover"
         >
           <button
-            className="absolute right-4 -top-10 bg-primary text-white rounded-full p-3 shadow-lg"
+            className="absolute right-4 -top-10 bg-primary text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-shadow"
             onClick={() => setPopoverVisible(!popoverVisible)}
           >
             <MoreOutlined style={{ fontSize: "1.5em" }} />
@@ -253,18 +290,18 @@ export const MobileBottomNavbar: React.FC = () => {
         </Popover>
       </CanAccess>
 
-      {/* More button untuk CUSTOMER (jika diperlukan) */}
+      {/* More button - CUSTOMER */}
       <CanAccess resource="customer/orders" action="list">
         <Popover
           content={customerMoreMenuContent}
           trigger="click"
           placement="topRight"
           open={popoverVisible}
-          onOpenChange={handlePopoverVisibleChange}
+          onOpenChange={setPopoverVisible}
           overlayClassName="bottom-nav-popover"
         >
           <button
-            className="absolute right-4 -top-10 bg-primary text-white rounded-full p-3 shadow-lg"
+            className="absolute right-4 -top-10 bg-primary text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-shadow"
             onClick={() => setPopoverVisible(!popoverVisible)}
           >
             <MoreOutlined style={{ fontSize: "1.5em" }} />
