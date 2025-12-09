@@ -373,7 +373,6 @@ export const Dashboard = () => {
               value={item.value}
               valueStyle={{ color: item.color }}
               suffix={item.suffix}
-              prefix={item.prefix}
               formatter={item.formatter ? (value) => item.formatter!(value as number) : undefined}
             />
           </Card>

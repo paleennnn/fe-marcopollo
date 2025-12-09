@@ -48,13 +48,15 @@ const renderProfit = (record: any) => {
 };
 
 export const RiwayatPanenList = () => {
-  const { tableProps, isLoading } = useTable({
+  const { tableProps, tableQueryResult } = useTable({
     resource: "leles-riwayat-panen",
     syncWithLocation: true,
     pagination: {
       pageSize: 10,
     },
   });
+
+  const isLoading = tableQueryResult?.isLoading || false;
 
   const dataProvider = useDataProvider();
   const [exportLoading, setExportLoading] = useState(false);

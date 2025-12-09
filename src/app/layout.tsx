@@ -228,6 +228,7 @@ export default function RootLayout({
                             icon: (
                               <InboxOutlined style={{ fontSize: "1.2em" }} />
                             ),
+                            parent: "transaksi",
                           },
                         },
                         // MENU LAPORAN KEUANGAN
