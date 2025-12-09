@@ -1,6 +1,12 @@
 "use client";
 
-import { useCustom, useGo, useCustomMutation, useInvalidate, useApiUrl } from "@refinedev/core";
+import {
+  useCustom,
+  useGo,
+  useCustomMutation,
+  useInvalidate,
+  useApiUrl,
+} from "@refinedev/core";
 import { Edit } from "@refinedev/antd";
 import {
   Form,
@@ -30,7 +36,11 @@ export const LeleEdit = () => {
   const [form] = Form.useForm();
   const apiUrl = useApiUrl();
 
-  const { data: kolamData, isLoading: isLoadingKolam, error: fetchError } = useCustom({
+  const {
+    data: kolamData,
+    isLoading: isLoadingKolam,
+    error: fetchError,
+  } = useCustom({
     url: `${apiUrl}/leles/${kolamId}`,
     method: "get",
     config: { query: {} },
@@ -39,8 +49,11 @@ export const LeleEdit = () => {
     },
   });
 
-  const kolam = kolamData?.data?.data;
-  const { mutate: updateBudidaya, isLoading: isSubmitting } = useCustomMutation();
+  const dataSource = kolamData?.data;
+  const kolam = dataSource?.data || dataSource;
+
+  const { mutate: updateBudidaya, isLoading: isSubmitting } =
+    useCustomMutation();
 
   // ✅ FIX: Populate form dengan field names yang benar (camelCase)
   useEffect(() => {
@@ -49,7 +62,7 @@ export const LeleEdit = () => {
     }
 
     if (!kolam) {
-      console.warn("Kolam is null/undefined");
+      console.warn("Kolam is null/undefined", kolamData);
       return;
     }
 
@@ -64,15 +77,22 @@ export const LeleEdit = () => {
       return;
     }
 
-    // ✅ Set form values - gunakan camelCase sesuai API response
+    // ✅ Set form values - gunakan camelCase sesuai API response, fallback ke snake_case jika perlu
     try {
+      const b = kolam.budidaya;
+      const bJumlahBibit = b.jumlahBibit || b.jumlah_bibit;
+      const bHargaBeliTotal = b.hargaBeliTotal || b.harga_beli_total;
+      const bTanggalMulai = b.tanggalMulai || b.tanggal_mulai;
+
       const formData = {
-        jumlahBibit: kolam.budidaya.jumlahBibit,           // ← camelCase
-        hargaBeliTotal: kolam.budidaya.hargaBeliTotal,     // ← camelCase
-        tanggalMulai: dayjs(kolam.budidaya.tanggalMulai),  // ← camelCase
+        jumlahBibit: bJumlahBibit ? Number(bJumlahBibit) : undefined,
+        hargaBeliTotal: bHargaBeliTotal ? Number(bHargaBeliTotal) : undefined,
+        tanggalMulai: bTanggalMulai ? dayjs(bTanggalMulai) : undefined,
       };
 
-      console.log("Setting form values:", formData);
+      console.log("Raw Budidaya Data:", b);
+      console.log("Setting Form Values (Processed):", formData);
+
       form.setFieldsValue(formData);
     } catch (error) {
       console.error("Error setting form:", error);
@@ -88,7 +108,9 @@ export const LeleEdit = () => {
       open?.({
         type: "error",
         message: "Validasi Gagal",
-        description: `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`,
+        description: `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString(
+          "id-ID"
+        )} ekor`,
       });
       return;
     }
@@ -117,7 +139,8 @@ export const LeleEdit = () => {
           open?.({
             type: "error",
             message: "Gagal",
-            description: error?.response?.data?.message || "Gagal mengupdate budidaya",
+            description:
+              error?.response?.data?.message || "Gagal mengupdate budidaya",
           });
         },
       }
@@ -147,13 +170,19 @@ export const LeleEdit = () => {
 
   return (
     <Edit
-      title={<Title level={3}>Edit Budidaya - Kolam {kolam?.nomor_kolam}</Title>}
+      title={
+        <Title level={3}>Edit Budidaya - Kolam {kolam?.nomor_kolam}</Title>
+      }
       saveButtonProps={{
         onClick: () => form.submit(),
         loading: isSubmitting,
       }}
     >
-      <Card title="Informasi Kolam" style={{ marginBottom: 16 }} variant="outlined">
+      <Card
+        title="Informasi Kolam"
+        style={{ marginBottom: 16 }}
+        variant="outlined"
+      >
         <Descriptions bordered column={2}>
           <Descriptions.Item label="Nomor Kolam" span={1}>
             <Text strong>{kolam?.nomor_kolam}</Text>
@@ -174,7 +203,9 @@ export const LeleEdit = () => {
 
       <Alert
         message="Perhatian"
-        description={`Pastikan jumlah bibit tidak melebihi kapasitas maksimal kolam (${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor)`}
+        description={`Pastikan jumlah bibit tidak melebihi kapasitas maksimal kolam (${kolam?.kapasitas_max?.toLocaleString(
+          "id-ID"
+        )} ekor)`}
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
@@ -196,27 +227,30 @@ export const LeleEdit = () => {
                 if (num > kolam?.kapasitas_max) {
                   return Promise.reject(
                     new Error(
-                      `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`
+                      `Jumlah bibit tidak boleh melebihi ${kolam?.kapasitas_max?.toLocaleString(
+                        "id-ID"
+                      )} ekor`
                     )
                   );
                 }
                 if (num <= 0) {
-                  return Promise.reject(new Error("Jumlah bibit harus lebih dari 0"));
+                  return Promise.reject(
+                    new Error("Jumlah bibit harus lebih dari 0")
+                  );
                 }
                 return Promise.resolve();
               },
             },
           ]}
         >
-          <Space.Compact style={{ width: "100%" }}>
-            <Input
-              type="number"
-              placeholder={`Maksimal ${kolam?.kapasitas_max?.toLocaleString("id-ID")} ekor`}
-              style={{ flex: 1 }}
-              min={1}
-            />
-            <Input value="ekor" readOnly style={{ width: 60, textAlign: "center" }} />
-          </Space.Compact>
+          <Input
+            type="number"
+            placeholder={`Maksimal ${kolam?.kapasitas_max?.toLocaleString(
+              "id-ID"
+            )} ekor`}
+            min={1}
+            addonAfter="ekor"
+          />
         </Form.Item>
 
         {/* ✅ FIX: Field name = hargaBeliTotal (camelCase) */}
@@ -237,15 +271,12 @@ export const LeleEdit = () => {
           ]}
           extra="Total harga pembelian bibit lele"
         >
-          <Space.Compact style={{ width: "100%" }}>
-            <Input value="Rp" readOnly style={{ width: 40, textAlign: "center" }} />
-            <Input
-              type="number"
-              placeholder="Masukkan total harga beli"
-              style={{ flex: 1 }}
-              min={1}
-            />
-          </Space.Compact>
+          <Input
+            type="number"
+            placeholder="Masukkan total harga beli"
+            min={1}
+            addonBefore="Rp"
+          />
         </Form.Item>
 
         {/* ✅ FIX: Field name = tanggalMulai (camelCase) */}

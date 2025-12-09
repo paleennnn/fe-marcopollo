@@ -163,7 +163,9 @@ export default function RootLayout({
                           name: "manajemen-lele",
                           meta: {
                             label: "Manajemen Lele",
-                            icon: <DockerOutlined style={{ fontSize: "1.2em" }} />,
+                            icon: (
+                              <DockerOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                           },
                         },
                         {
@@ -174,7 +176,9 @@ export default function RootLayout({
                           edit: "/leles/edit/:id",
                           meta: {
                             label: "Kolam Lele",
-                            icon: <AppstoreOutlined style={{ fontSize: "1.2em" }} />,
+                            icon: (
+                              <AppstoreOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                             parent: "manajemen-lele",
                           },
                         },
@@ -184,7 +188,9 @@ export default function RootLayout({
                           show: "/leles-riwayat-panen/show/:id",
                           meta: {
                             label: "Riwayat Panen",
-                            icon: <HistoryOutlined style={{ fontSize: "1.2em" }} />,
+                            icon: (
+                              <HistoryOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                             parent: "manajemen-lele",
                           },
                         },
@@ -193,7 +199,11 @@ export default function RootLayout({
                           name: "transaksi",
                           meta: {
                             label: "Manajemen Transaksi",
-                            icon: <TransactionOutlined style={{ fontSize: "1.2em" }} />,
+                            icon: (
+                              <TransactionOutlined
+                                style={{ fontSize: "1.2em" }}
+                              />
+                            ),
                           },
                         },
                         {
@@ -204,7 +214,9 @@ export default function RootLayout({
                           meta: {
                             canDelete: true,
                             label: "Transaksi",
-                            icon: <FileTextOutlined style={{ fontSize: "1.2em" }} />,
+                            icon: (
+                              <FileTextOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                             parent: "transaksi",
                           },
                         },
@@ -213,8 +225,20 @@ export default function RootLayout({
                           list: "/refunds",
                           meta: {
                             label: "Pengembalian",
-                            icon: <InboxOutlined style={{ fontSize: "1.2em" }} />,
-                            parent: "transaksi",
+                            icon: (
+                              <InboxOutlined style={{ fontSize: "1.2em" }} />
+                            ),
+                          },
+                        },
+                        // MENU LAPORAN KEUANGAN
+                        {
+                          name: "financial-reports",
+                          list: "/financial-reports",
+                          meta: {
+                            label: "Laporan Keuangan",
+                            icon: (
+                              <HistoryOutlined style={{ fontSize: "1.2em" }} />
+                            ),
                           },
                         },
                         // MENU CUSTOMER

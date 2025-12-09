@@ -12,11 +12,28 @@ import {
   Image,
   Input,
   Tabs,
+  DatePicker,
 } from "antd";
-import { CheckOutlined, CloseOutlined, EyeOutlined } from "@ant-design/icons";
-import { useApiUrl, useCustomMutation, useInvalidate } from "@refinedev/core";
-import { useNotification } from "@refinedev/core";
+import {
+  CheckOutlined,
+  CloseOutlined,
+  EyeOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
+} from "@ant-design/icons";
+import {
+  useApiUrl,
+  useCustomMutation,
+  useInvalidate,
+  useDataProvider,
+  useNotification,
+  type CrudFilters,
+} from "@refinedev/core";
 import dayjs from "dayjs";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -25,6 +42,7 @@ type OrderStatus = "semua" | "menunggu_verifikasi" | "selesai" | "ditolak";
 
 export const OrdersList = () => {
   const apiUrl = useApiUrl();
+  const dataProvider = useDataProvider();
   const { open } = useNotification();
   const invalidate = useInvalidate();
   const [activeTab, setActiveTab] = useState<OrderStatus>("semua");
@@ -34,21 +52,41 @@ export const OrdersList = () => {
   const [catatanAdmin, setCatatanAdmin] = useState("");
   const [verifikasiLoading, setVerifikasiLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const { tableProps } = useTable({
     resource: "orders",
     syncWithLocation: true,
+    pagination: {
+      mode: "off",
+    },
     filters: {
-      permanent:
-        activeTab === "semua"
-          ? []
-          : [
+      permanent: [
+        ...(activeTab !== "semua"
+          ? [
               {
                 field: "status",
-                operator: "eq",
+                operator: "eq" as const,
                 value: activeTab,
               },
-            ],
+            ]
+          : []),
+        ...(selectedMonth
+          ? [
+              {
+                field: "tanggalOrder",
+                operator: "gte" as const,
+                value: selectedMonth.startOf("month").toISOString(),
+              },
+              {
+                field: "tanggalOrder",
+                operator: "lte" as const,
+                value: selectedMonth.endOf("month").toISOString(),
+              },
+            ]
+          : []),
+      ],
     },
   });
 
@@ -141,6 +179,184 @@ export const OrdersList = () => {
     );
   };
 
+  const handleExport = async (type: "excel" | "pdf") => {
+    setExportLoading(true);
+    try {
+      const filters: CrudFilters = [
+        ...(activeTab !== "semua"
+          ? [{ field: "status", operator: "eq", value: activeTab }]
+          : []),
+        ...(selectedMonth
+          ? [
+              {
+                field: "tanggalOrder",
+                operator: "gte",
+                value: selectedMonth.startOf("month").toISOString(),
+              },
+              {
+                field: "tanggalOrder",
+                operator: "lte",
+                value: selectedMonth.endOf("month").toISOString(),
+              },
+            ]
+          : []),
+      ];
+
+      const { data } = await dataProvider().getList({
+        resource: "orders",
+        filters,
+        pagination: { mode: "off" },
+      });
+
+      let orders =
+        (data as any)?.data?.data || (data as any)?.data || data || [];
+      if (!Array.isArray(orders)) {
+        orders = [];
+      }
+
+      // Client-side filtering as fallback if backend ignores filters
+      if (selectedMonth) {
+        const startOfMonth = selectedMonth.startOf("month");
+        const endOfMonth = selectedMonth.endOf("month");
+        orders = orders.filter((order: any) => {
+          const orderDate = dayjs(order.tanggalOrder);
+          return (
+            orderDate.isSame(startOfMonth, "day") ||
+            orderDate.isSame(endOfMonth, "day") ||
+            (orderDate.isAfter(startOfMonth) && orderDate.isBefore(endOfMonth))
+          );
+        });
+      }
+
+      if (activeTab !== "semua") {
+        orders = orders.filter(
+          (order: any) => order.statusPembayaran === activeTab
+        );
+      }
+
+      if (type === "excel") {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Transaksi");
+
+        worksheet.columns = [
+          { header: "No", key: "no", width: 5 },
+          { header: "Nomor Order", key: "nomorOrder", width: 20 },
+          { header: "Tanggal", key: "tanggal", width: 20 },
+          { header: "Customer", key: "customer", width: 30 },
+          { header: "Items", key: "items", width: 40 },
+          { header: "Total", key: "total", width: 20 },
+          { header: "Metode Pembayaran", key: "metode", width: 20 },
+          { header: "Status", key: "status", width: 20 },
+        ];
+
+        orders.forEach((order: any, index: number) => {
+          const items =
+            order.orderDetails
+              ?.map((item: any) => `${item.namaProduk} (x${item.jumlah})`)
+              .join("\n") || "-";
+
+          const row = worksheet.addRow({
+            no: index + 1,
+            nomorOrder: order.nomorOrder,
+            tanggal: dayjs(order.tanggalOrder).format("DD/MM/YYYY HH:mm"),
+            customer: order.user?.fullname || "-",
+            items: items,
+            total: parseFloat(order.totalHarga || 0),
+            metode: order.metodePembayaran?.toUpperCase(),
+            status: getStatusLabel(order.statusPembayaran),
+          });
+
+          // Adjust row height based on number of items (approx 20px per item)
+          const itemCount = order.orderDetails?.length || 1;
+          row.height = itemCount * 20;
+
+          // Ensure strict alignment for the items cell
+          row.getCell("items").alignment = {
+            vertical: "top",
+            horizontal: "left",
+            wrapText: true,
+          };
+        });
+
+        // Format currency column
+        worksheet.getColumn("total").numFmt = '"Rp" #,##0.00';
+
+        // Column configurations
+        worksheet.getColumn("items").width = 40;
+        worksheet.getColumn("no").alignment = { vertical: "top" };
+        worksheet.getColumn("nomorOrder").alignment = { vertical: "top" };
+        worksheet.getColumn("tanggal").alignment = { vertical: "top" };
+        worksheet.getColumn("customer").alignment = { vertical: "top" };
+        worksheet.getColumn("total").alignment = { vertical: "top" };
+        worksheet.getColumn("metode").alignment = { vertical: "top" };
+        worksheet.getColumn("status").alignment = { vertical: "top" };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        saveAs(blob, `Transaksi_${dayjs().format("YYYY-MM-DD_HH-mm")}.xlsx`);
+      } else {
+        const doc = new jsPDF();
+
+        const tableColumn = [
+          "No",
+          "Nomor Order",
+          "Tanggal",
+          "Customer",
+          "Items",
+          "Total",
+          "Metode",
+          "Status",
+        ];
+
+        const tableRows = orders.map((order: any, index: number) => {
+          const items =
+            order.orderDetails
+              ?.map((item: any) => `${item.namaProduk} (x${item.jumlah})`)
+              .join("\n") || "-";
+
+          return [
+            index + 1,
+            order.nomorOrder,
+            dayjs(order.tanggalOrder).format("DD/MM/YYYY HH:mm"),
+            order.user?.fullname || "-",
+            items,
+            `Rp ${parseFloat(order.totalHarga || 0).toLocaleString("id-ID")}`,
+            order.metodePembayaran?.toUpperCase(),
+            getStatusLabel(order.statusPembayaran),
+          ];
+        });
+
+        doc.text("Laporan Transaksi", 14, 15);
+        if (selectedMonth) {
+          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, 22);
+        }
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: selectedMonth ? 25 : 20,
+          styles: { fontSize: 8 },
+          columnStyles: {
+            4: { cellWidth: 40 }, // Width for Items column
+          },
+        });
+
+        doc.save(`Transaksi_${dayjs().format("YYYY-MM-DD_HH-mm")}.pdf`);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      open?.({
+        type: "error",
+        message: "Gagal Export",
+        description: "Terjadi kesalahan saat mengexport data",
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleModalOk = () => {
     if (!catatanAdmin.trim()) {
       open?.({
@@ -172,33 +388,98 @@ export const OrdersList = () => {
     setSelectedOrder(null);
   };
 
-  const apiData = (tableProps.dataSource as any)?.data?.data || [];
-  const safeTableProps = {
-    ...tableProps,
-    dataSource: Array.isArray(apiData) ? apiData : [],
-    pagination: {
-      ...tableProps.pagination,
-      total: (tableProps.dataSource as any)?.data?.meta?.total || 0,
-    },
-  };
-
   const tabItems = [
     { key: "semua", label: "Semua Transaksi" },
-    { key: "menunggu_verifikasi", label: "Menunggu" },
     { key: "dikirim", label: "Sedang Dikirim" },
     { key: "selesai", label: "Selesai" },
     { key: "ditolak", label: "Ditolak" },
   ];
 
+  const dataSource = tableProps.dataSource as any;
+  // Handle various potential data structures
+  let rawData = dataSource?.data?.data || dataSource?.data || dataSource || [];
+  if (!Array.isArray(rawData)) {
+    rawData = [];
+  }
+
+  // Apply Client-Side Filtering
+  let filteredData = rawData;
+
+  if (selectedMonth) {
+    const startOfMonth = selectedMonth.startOf("month");
+    const endOfMonth = selectedMonth.endOf("month");
+    filteredData = filteredData.filter((order: any) => {
+      const orderDate = dayjs(order.tanggalOrder);
+      return (
+        orderDate.isSame(startOfMonth, "day") ||
+        orderDate.isSame(endOfMonth, "day") ||
+        (orderDate.isAfter(startOfMonth) && orderDate.isBefore(endOfMonth))
+      );
+    });
+  }
+
+  if (activeTab !== "semua") {
+    filteredData = filteredData.filter(
+      (order: any) => order.statusPembayaran === activeTab
+    );
+  }
+
+  const safeTableProps = {
+    ...tableProps,
+    dataSource: filteredData,
+    pagination: {
+      pageSize: 10,
+      total: filteredData.length,
+      showTotal: (total: number) => `Total ${total} items`,
+    },
+  };
+
   return (
     <>
       <List>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as OrderStatus)}
-          items={tabItems}
-          style={{ marginBottom: 16 }}
-        />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <Tabs
+            activeKey={activeTab}
+            onChange={(key) => setActiveTab(key as OrderStatus)}
+            items={tabItems}
+            style={{ marginBottom: 0, flex: 1 }}
+          />
+          <Space>
+            <DatePicker
+              picker="month"
+              placeholder="Filter Bulan"
+              onChange={(date) => setSelectedMonth(date)}
+              value={selectedMonth}
+              style={{ width: 150 }}
+              allowClear
+            />
+            <Button
+              icon={<FileExcelOutlined />}
+              onClick={() => handleExport("excel")}
+              loading={exportLoading}
+              style={{ backgroundColor: "#217346", color: "white" }}
+            >
+              Excel
+            </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              onClick={() => handleExport("pdf")}
+              loading={exportLoading}
+              danger
+            >
+              PDF
+            </Button>
+          </Space>
+        </div>
 
         <Table {...safeTableProps} rowKey="idOrder">
           <Table.Column
