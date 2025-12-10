@@ -73,7 +73,12 @@ export const RiwayatPanenList = () => {
       // Fetch all data for export
       const { data } = await dataProvider().getList({
         resource: "leles-riwayat-panen",
-        pagination: { mode: "off" },
+        pagination: {
+          current: 1,
+          pageSize: 10000,
+          mode: "server",
+        },
+        filters: tableProps.filters,
       });
 
       const allData = (data as any)?.data || data || [];
@@ -187,7 +192,7 @@ export const RiwayatPanenList = () => {
         <div style={styles.titleContainer}>
           <HistoryOutlined style={styles.titleIcon} />
           <Text strong style={styles.titleText}>
-            Riwayat Panen Lele ({rowCount} Data)
+            Riwayat Panen Lele
           </Text>
         </div>
       }

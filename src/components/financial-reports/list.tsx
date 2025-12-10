@@ -7,7 +7,7 @@ import {
   TextField,
   NumberField,
 } from "@refinedev/antd";
-import { useNavigation, useGo } from "@refinedev/core";
+import { useNavigation, useGo, useList } from "@refinedev/core";
 import {
   Table,
   Tabs,
@@ -39,7 +39,8 @@ export const FinancialReportsList = () => {
   const { tableProps } = useTable({
     resource: "orders",
     pagination: {
-      mode: "off",
+      pageSize: 10000, // Fetch all orders for report
+      mode: "server",
     },
     filters: {
       permanent: [
@@ -53,11 +54,48 @@ export const FinancialReportsList = () => {
     syncWithLocation: false,
   });
 
+  // Fetch Lele Harvests
+  const { data: leleData } = useList({
+    resource: "leles-riwayat-panen",
+    pagination: {
+      pageSize: 10000,
+      mode: "server",
+    },
+  });
+
   const [activeTab, setActiveTab] = useState("all");
   const [exportLoading, setExportLoading] = useState(false);
 
   const dataSource = tableProps.dataSource as any;
-  const orders = dataSource?.data?.data || dataSource?.data || dataSource || [];
+  const rawOrders =
+    dataSource?.data?.data || dataSource?.data || dataSource || [];
+
+  // Normalize Lele Data to match Order structure
+  // Data provider now returns normalized data, so leleData?.data should be an array
+  const leleList: any[] = Array.isArray(leleData?.data) ? leleData.data : [];
+
+  const leleOrders = leleList.map((item: any) => ({
+    idOrder: `PANEN-${item.idPanen}`,
+    nomorOrder: `PANEN-${item.nomorKolam}-${dayjs(item.tanggalPanen).format(
+      "DMY"
+    )}`,
+    tanggalOrder: item.tanggalPanen,
+    totalHarga: item.hargaJualTotal, // Revenue/Omset
+    user: { fullname: "Internal (Panen)" },
+    orderDetails: [
+      {
+        namaProduk: `Panen Lele Kolam ${item.nomorKolam} (${item.totalBeratKg}kg)`,
+        tipeProduk: "lele",
+        jumlah: 1,
+        hargaSatuan: item.hargaJualTotal,
+      },
+    ],
+    status: "selesai",
+  }));
+
+  const orders = [...rawOrders, ...leleOrders].sort(
+    (a, b) => dayjs(b.tanggalOrder).valueOf() - dayjs(a.tanggalOrder).valueOf()
+  );
 
   const processData = useMemo(() => {
     let _orders = Array.isArray(orders) ? [...orders] : [];

@@ -57,15 +57,18 @@ export const dataProvider = (
     const queryFilters = generateFilter(filters);
 
     const query: {
-      _start?: number;
-      _end?: number;
+      page?: number;
+      limit?: number | string;
       _sort?: string;
       _order?: string;
     } = {};
 
     if (mode === "server") {
-      query._start = (current - 1) * pageSize;
-      query._end = current * pageSize;
+      query.page = current;
+      query.limit = pageSize;
+    } else if (mode === "off") {
+      // Fetch all data when pagination is off
+      query.limit = "all";
     }
 
     const generatedSort = generateSort(sorters);
@@ -84,11 +87,16 @@ export const dataProvider = (
       headers: headersFromMeta,
     });
 
-    const total = +headers["x-total-count"];
+    // Handle nested data structures: { data: [...], total: N }
+    const responseData = data?.data ?? data;
+    const total =
+      data?.total ??
+      +headers["x-total-count"] ??
+      (Array.isArray(responseData) ? responseData.length : 0);
 
     return {
-      data,
-      total: total || data.length,
+      data: responseData,
+      total,
     };
   },
 
