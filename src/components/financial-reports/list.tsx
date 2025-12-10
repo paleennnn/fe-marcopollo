@@ -18,28 +18,35 @@ import {
   Space,
   Tag,
   Statistic,
+  DatePicker,
+  Button,
 } from "antd";
 import {
   DollarCircleOutlined,
   ShoppingOutlined,
   HistoryOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FileExcelOutlined, FilePdfOutlined } from "@ant-design/icons";
-import { Button } from "antd";
 
 const { Text, Title } = Typography;
 
 export const FinancialReportsList = () => {
+  const [activeTab, setActiveTab] = useState("all");
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null);
+
   const { tableProps } = useTable({
     resource: "orders",
     pagination: {
-      pageSize: 10000, // Fetch all orders for report
+      pageSize: 10000,
       mode: "server",
     },
     filters: {
@@ -63,15 +70,10 @@ export const FinancialReportsList = () => {
     },
   });
 
-  const [activeTab, setActiveTab] = useState("all");
-  const [exportLoading, setExportLoading] = useState(false);
-
   const dataSource = tableProps.dataSource as any;
   const rawOrders =
     dataSource?.data?.data || dataSource?.data || dataSource || [];
 
-  // Normalize Lele Data to match Order structure
-  // Data provider now returns normalized data, so leleData?.data should be an array
   const leleList: any[] = Array.isArray(leleData?.data) ? leleData.data : [];
 
   const leleOrders = leleList.map((item: any) => ({
@@ -80,7 +82,7 @@ export const FinancialReportsList = () => {
       "DMY"
     )}`,
     tanggalOrder: item.tanggalPanen,
-    totalHarga: item.hargaJualTotal, // Revenue/Omset
+    totalHarga: item.hargaJualTotal,
     user: { fullname: "Internal (Panen)" },
     orderDetails: [
       {
@@ -93,17 +95,31 @@ export const FinancialReportsList = () => {
     status: "selesai",
   }));
 
-  const orders = [...rawOrders, ...leleOrders].sort(
+  const allOrders = [...rawOrders, ...leleOrders].sort(
     (a, b) => dayjs(b.tanggalOrder).valueOf() - dayjs(a.tanggalOrder).valueOf()
   );
 
   const processData = useMemo(() => {
-    let _orders = Array.isArray(orders) ? [...orders] : [];
+    let _orders = Array.isArray(allOrders) ? [...allOrders] : [];
 
-    // Filter by category if needed
+    // Filter by month
+    if (selectedMonth) {
+      const startOfMonth = selectedMonth.startOf("month");
+      const endOfMonth = selectedMonth.endOf("month");
+      
+      _orders = _orders.filter((order: any) => {
+        const orderDate = dayjs(order.tanggalOrder);
+        return (
+          orderDate.isSame(startOfMonth, "day") ||
+          orderDate.isSame(endOfMonth, "day") ||
+          (orderDate.isAfter(startOfMonth) && orderDate.isBefore(endOfMonth))
+        );
+      });
+    }
+
+    // Filter by category
     if (activeTab !== "all") {
       _orders = _orders.filter((order: any) => {
-        // Check order details for product type
         return order.orderDetails?.some(
           (detail: any) => detail.tipeProduk === activeTab
         );
@@ -122,17 +138,20 @@ export const FinancialReportsList = () => {
       totalIncome,
       totalTransactions,
     };
-  }, [orders, activeTab]);
+  }, [allOrders, activeTab, selectedMonth]);
 
   const handleExport = async (type: "excel" | "pdf") => {
     setExportLoading(true);
     try {
       const dataToExport = processData.orders;
+      const monthText = selectedMonth
+        ? ` - ${selectedMonth.format("MMMM YYYY")}`
+        : "";
       const title = `Laporan Keuangan - ${
         activeTab === "all"
           ? "Semua"
           : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
-      }`;
+      }${monthText}`;
 
       if (type === "excel") {
         const workbook = new ExcelJS.Workbook();
@@ -162,11 +181,9 @@ export const FinancialReportsList = () => {
             total: parseFloat(order.totalHarga || 0),
           });
 
-          // Adjust row height based on number of items (approx 20px per item)
           const itemCount = order.orderDetails?.length || 1;
           row.height = itemCount * 20;
 
-          // Ensure strict alignment for the items cell
           row.getCell("items").alignment = {
             vertical: "top",
             horizontal: "left",
@@ -174,10 +191,8 @@ export const FinancialReportsList = () => {
           };
         });
 
-        // Format currency column
         worksheet.getColumn("total").numFmt = '"Rp" #,##0.00';
 
-        // Column configurations
         worksheet.getColumn("items").width = 40;
         worksheet.getColumn("no").alignment = { vertical: "top" };
         worksheet.getColumn("nomorOrder").alignment = { vertical: "top" };
@@ -222,22 +237,27 @@ export const FinancialReportsList = () => {
         });
 
         doc.text(title, 14, 15);
+        if (selectedMonth) {
+          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, 22);
+        }
         doc.text(
-          `Total Pendapatan: Rp ${processData.totalIncome.toLocaleString(
-            "id-ID"
-          )}`,
+          `Total Omset: Rp ${processData.totalIncome.toLocaleString("id-ID")}`,
           14,
-          22
+          selectedMonth ? 29 : 22
         );
-        doc.text(`Total Transaksi: ${processData.totalTransactions}`, 14, 29);
+        doc.text(
+          `Total Transaksi: ${processData.totalTransactions}`,
+          14,
+          selectedMonth ? 36 : 29
+        );
 
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 35,
+          startY: selectedMonth ? 42 : 35,
           styles: { fontSize: 8 },
           columnStyles: {
-            4: { cellWidth: 50 }, // Width for Items column
+            4: { cellWidth: 50 },
           },
         });
 
@@ -262,6 +282,14 @@ export const FinancialReportsList = () => {
       title="Laporan Keuangan"
       headerButtons={
         <Space>
+          <DatePicker
+            picker="month"
+            placeholder="Filter Bulan"
+            onChange={(date) => setSelectedMonth(date)}
+            value={selectedMonth}
+            style={{ width: 150 }}
+            allowClear
+          />
           <Button
             icon={<FileExcelOutlined />}
             onClick={() => handleExport("excel")}
@@ -285,7 +313,7 @@ export const FinancialReportsList = () => {
         <Col xs={24} sm={12}>
           <Card>
             <Statistic
-              title="Total Pendapatan"
+              title="Total Omset"
               value={processData.totalIncome}
               prefix={<DollarCircleOutlined />}
               precision={0}
@@ -316,7 +344,10 @@ export const FinancialReportsList = () => {
         <Table
           dataSource={processData.orders}
           rowKey="idOrder"
-          pagination={{ pageSize: 10 }}
+          pagination={{ 
+            pageSize: 10,
+            showTotal: (total: number) => `Total ${total} transaksi`,
+          }}
         >
           <Table.Column
             dataIndex="nomorOrder"
@@ -326,7 +357,7 @@ export const FinancialReportsList = () => {
           <Table.Column
             dataIndex="tanggalOrder"
             title="Tanggal"
-            render={(value) => dayjs(value).format("DD MMM YYYY")}
+            render={(value) => dayjs(value).format("DD MMM YYYY HH:mm")}
           />
           <Table.Column
             dataIndex="user"
