@@ -108,7 +108,12 @@ export const FinanceComparison = () => {
   if (error) {
     return (
       <Card title={<Title level={4}>📈 Tren Profit (6 Bulan)</Title>}>
-        <Alert message={error} type="warning" showIcon />
+        <Alert 
+          message="Data keuangan tidak tersedia" 
+          description="Fitur ini akan ditampilkan setelah transaksi pertama." 
+          type="info" 
+          showIcon 
+        />
       </Card>
     );
   }

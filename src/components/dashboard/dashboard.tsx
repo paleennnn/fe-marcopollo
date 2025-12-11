@@ -190,22 +190,26 @@ export const Dashboard = () => {
     const uses = usersData?.data || [];
     const ords = ordersData?.data || [];
 
+    // Filter orders bulan ini dengan safe date parsing
+    const ordersThisMonth = ords.filter(
+      (o: any) => {
+        try {
+          const orderDate = dayjs(o.tanggalOrder || o.tanggal_order || o.created_at);
+          if (!orderDate.isValid()) return false;
+          return orderDate.month() + 1 === currentMonth && orderDate.year() === currentYear;
+        } catch {
+          return false;
+        }
+      }
+    );
+
     return {
       totalKambing: kambs.length || 0,
       totalMaterial: mats.length || 0,
       totalCustomer: uses.filter((u: any) => u.role === "customer").length || 0,
-      totalOrdersBulanIni: ords.filter(
-        (o: any) =>
-          dayjs(o.tanggalOrder).month() + 1 === currentMonth &&
-          dayjs(o.tanggalOrder).year() === currentYear
-      ).length || 0,
-      totalRevenueBulanIni: ords
-        .filter(
-          (o: any) =>
-            dayjs(o.tanggalOrder).month() + 1 === currentMonth &&
-            dayjs(o.tanggalOrder).year() === currentYear
-        )
-        .reduce((sum: number, o: any) => sum + (o.totalHarga || 0), 0) || 0,
+      totalOrdersBulanIni: ordersThisMonth.length || 0,
+      totalRevenueBulanIni: ordersThisMonth
+        .reduce((sum: number, o: any) => sum + (o.totalHarga || o.total_harga || 0), 0) || 0,
       totalProfitBulanIni: 0,
     };
   }, [kambingsData?.data, materialsData?.data, usersData?.data, ordersData?.data, currentMonth, currentYear]);
@@ -226,7 +230,44 @@ export const Dashboard = () => {
         
         const json = await response.json();
         const kolamData = Array.isArray(json) ? json : json?.data || [];
-        setKolamStatus(kolamData);
+        
+        // Filter hanya kolam yang akan/siap panen (status bukan "budidaya")
+        const PANEN_UMUR = 90;
+        const PANEN_WARNING_UMUR = 83;
+        
+        const filteredKolam = kolamData
+          .map((kolam: any) => {
+            const activeStatus = kolam.status === "sedang_budidaya" ? kolam.budidaya : kolam.budidaya;
+            if (!activeStatus) return null;
+
+            const startDate = dayjs(activeStatus.tanggal_mulai || activeStatus.tanggalMulai);
+            if (!startDate.isValid()) return null;
+
+            const hariKe = dayjs().diff(startDate, "days");
+            const panenDate = startDate.add(PANEN_UMUR, "days");
+
+            const status: "siap_panen" | "akan_panen" | "budidaya" =
+              hariKe >= PANEN_UMUR ? "siap_panen" :
+              hariKe >= PANEN_WARNING_UMUR ? "akan_panen" : "budidaya";
+
+            // Hanya tampilkan yang akan/siap panen
+            if (status === "budidaya") return null;
+
+            return {
+              id_kolam: kolam.id_kolam || kolam.idKolam || "",
+              nomor_kolam: kolam.nomor_kolam || kolam.nomorKolam || "",
+              ukuran: kolam.ukuran || "",
+              jumlah_bibit: activeStatus.jumlah_bibit || activeStatus.jumlahBibit || 0,
+              hari_ke: hariKe,
+              tanggal_panen: panenDate.toISOString(),
+              status,
+            };
+          })
+          .filter((k: any) => k !== null)
+          .sort((a: any, b: any) => b.hari_ke - a.hari_ke)
+          .slice(0, 5);
+        
+        setKolamStatus(filteredKolam);
       } catch (err) {
         console.error("Error fetching kolam status:", err);
         setKolamStatus([]);

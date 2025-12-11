@@ -29,6 +29,11 @@ export const PieChartStatus = () => {
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const response = await fetch(`${apiUrl}/leles`, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status}`);
+        }
+
         const result = await response.json();
 
         const kolams = Array.isArray(result?.data)
@@ -57,7 +62,8 @@ export const PieChartStatus = () => {
         setData(statusCount);
         setLoading(false);
       } catch (err: any) {
-        setError(err.message || "Error");
+        console.error("Pie chart fetch error:", err);
+        setError("Tidak dapat memuat data kolam");
         setLoading(false);
       }
     };
