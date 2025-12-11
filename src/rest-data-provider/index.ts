@@ -11,22 +11,30 @@ const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET);
 // Interceptor untuk menambahkan token ke setiap permintaan
 axiosInstance.interceptors.request.use(
   async (config) => {
-    // Ambil token dari cookie
-    const encryptedToken = Cookies.get("auth");
+    let token: string | null = null;
 
+    // 1. Coba ambil dari cookie dulu (encrypted)
+    const encryptedToken = Cookies.get("auth");
     if (encryptedToken) {
       try {
-        // Dekripsi token
         const { payload } = await jwtVerify(encryptedToken, secret);
-        const token = payload.token; // Token yang sebenarnya
-
-        // Tambahkan token ke header Authorization
-        if (token && config?.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        token = payload.token as string;
       } catch (error) {
-        console.error("Failed to decrypt token", error);
+        console.warn("Failed to decrypt token from cookie, falling back to localStorage");
       }
+    }
+
+    // 2. Jika cookie gagal/tidak ada, ambil dari localStorage
+    if (!token) {
+      token = localStorage.getItem("token");
+    }
+
+    // Tambahkan token ke header Authorization
+    if (token && config?.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("✅ Token added to request");
+    } else {
+      console.warn("⚠️ No token available for request");
     }
 
     return config;
