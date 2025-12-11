@@ -75,7 +75,8 @@ const getUserRole = (): string | null => {
   }
 };
 
-const formatCurrency = (value: number): string => {
+const formatCurrency = (value: number | undefined | null): string => {
+  if (!value || value === 0 || isNaN(value)) return `Rp 0`;
   return `Rp ${value.toLocaleString("id-ID")}`;
 };
 
@@ -307,7 +308,7 @@ export const Dashboard = () => {
       title: "Bibit",
       dataIndex: "jumlah_bibit",
       key: "jumlah_bibit",
-      render: (value: number) => `${value.toLocaleString("id-ID")} ekor`,
+      render: (value: number) => value ? `${value.toLocaleString("id-ID")} ekor` : "0 ekor",
     },
     {
       title: "Hari Ke-",
