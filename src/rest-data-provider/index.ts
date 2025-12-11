@@ -98,11 +98,17 @@ export const dataProvider = (
       headers: headersFromMeta,
     });
 
-    const total = +headers["x-total-count"];
+    // Handle nested response format: { data: [...], total: N }
+    let responseData = Array.isArray(data) ? data : data?.data;
+    if (!Array.isArray(responseData)) {
+      responseData = [];
+    }
+
+    const total = data?.total ?? (+headers["x-total-count"] || responseData.length);
 
     return {
-      data,
-      total: total || data.length,
+      data: responseData,
+      total,
     };
   },
 
@@ -115,8 +121,14 @@ export const dataProvider = (
       { headers }
     );
 
+    // Handle nested data structures
+    let responseData = Array.isArray(data) ? data : data?.data;
+    if (!Array.isArray(responseData)) {
+      responseData = [];
+    }
+
     return {
-      data,
+      data: responseData,
     };
   },
 
