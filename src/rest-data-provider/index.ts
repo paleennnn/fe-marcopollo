@@ -71,15 +71,15 @@ export const dataProvider = (
     const queryFilters = generateFilter(filters);
 
     const query: {
-      _start?: number;
-      _end?: number;
+      page?: number;
+      limit?: number;
       _sort?: string;
       _order?: string;
     } = {};
 
     if (mode === "server") {
-      query._start = (current - 1) * pageSize;
-      query._end = current * pageSize;
+      query.page = current;
+      query.limit = pageSize;
     }
 
     const generatedSort = generateSort(sorters);
