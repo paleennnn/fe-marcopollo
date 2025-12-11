@@ -88,11 +88,17 @@ export const dataProvider = (
     });
 
     // Handle nested data structures: { data: [...], total: N }
-    const responseData = data?.data ?? data;
+    let responseData = Array.isArray(data) ? data : data?.data;
+    
+    // Ensure responseData is always an array
+    if (!Array.isArray(responseData)) {
+      responseData = [];
+    }
+    
     const total =
       data?.total ??
       (headers["x-total-count"] ? +headers["x-total-count"] : undefined) ??
-      (Array.isArray(responseData) ? responseData.length : 0);
+      responseData.length;
 
     return {
       data: responseData,
@@ -109,8 +115,14 @@ export const dataProvider = (
       { headers }
     );
 
+    // Handle nested data structures
+    let responseData = Array.isArray(data) ? data : data?.data;
+    if (!Array.isArray(responseData)) {
+      responseData = [];
+    }
+
     return {
-      data,
+      data: responseData,
     };
   },
 
