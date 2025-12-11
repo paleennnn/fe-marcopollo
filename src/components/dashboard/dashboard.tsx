@@ -26,6 +26,7 @@ import { useApiUrl, useNavigation, useGetIdentity, useList } from "@refinedev/co
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
+import { error } from "console";
 
 const { Title, Text } = Typography;
 
@@ -172,6 +173,7 @@ export const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState<OrderData[]>([]);
   const [kolamStatus, setKolamStatus] = useState<KolamStatus[]>([]);
   const [kolamLoading, setKolamLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const userRole = useMemo(() => getUserRole(), []);
   const isAdmin = userRole === "admin";
