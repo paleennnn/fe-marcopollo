@@ -184,18 +184,18 @@ export const OrdersList = () => {
     try {
       const filters: CrudFilters = [
         ...(activeTab !== "semua"
-          ? [{ field: "status", operator: "eq", value: activeTab }]
+          ? [{ field: "status", operator: "eq" as const, value: activeTab }]
           : []),
         ...(selectedMonth
           ? [
               {
                 field: "tanggalOrder",
-                operator: "gte",
+                operator: "gte" as const,
                 value: selectedMonth.startOf("month").toISOString(),
               },
               {
                 field: "tanggalOrder",
-                operator: "lte",
+                operator: "lte" as const,
                 value: selectedMonth.endOf("month").toISOString(),
               },
             ]

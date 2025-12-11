@@ -13,7 +13,7 @@ import {
   Dropdown,
   MenuProps,
 } from "antd";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 
@@ -35,6 +35,9 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
   const { mode, setMode } = useContext(ColorModeContext);
   const router = useRouter();
   const { mutate: logout } = useLogout();
+  
+  const [isNameHovered, setIsNameHovered] = useState(false);
+  const [isAvatarHovered, setIsAvatarHovered] = useState(false);
 
   const headerStyles: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
@@ -78,12 +81,12 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
     },
   ];
 
-  // Dropdown props - simplified
+  // Dropdown props - fixed typing
   const dropdownProps = {
     menu: { items: menuItems },
     placement: "bottomRight" as const,
     arrow: true,
-    trigger: ['click'],
+    trigger: ['click'] as ('click' | 'hover' | 'contextMenu')[],
   };
 
   return (
@@ -101,12 +104,12 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
               <Text 
                 strong 
                 onClick={() => router.push("/profile")}
+                onMouseEnter={() => setIsNameHovered(true)}
+                onMouseLeave={() => setIsNameHovered(false)}
                 style={{ 
                   cursor: "pointer",
                   transition: "color 0.3s",
-                  ":hover": {
-                    color: token.colorPrimary,
-                  }
+                  color: isNameHovered ? token.colorPrimary : undefined,
                 }}
               >
                 {user.name}
@@ -122,6 +125,8 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
                   borderRadius: "50%",
                   transition: "all 0.3s",
                 }}
+                onMouseEnter={() => setIsAvatarHovered(true)}
+                onMouseLeave={() => setIsAvatarHovered(false)}
               >
                 <Avatar 
                   src={user?.avatar} 
@@ -130,10 +135,8 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
                   style={{ 
                     cursor: "pointer",
                     transition: "all 0.3s",
-                    ":hover": {
-                      border: `2px solid ${token.colorPrimary}`,
-                      boxShadow: `0 0 0 3px ${token.colorPrimaryBg}`,
-                    }
+                    border: isAvatarHovered ? `2px solid ${token.colorPrimary}` : undefined,
+                    boxShadow: isAvatarHovered ? `0 0 0 3px ${token.colorPrimaryBg}` : undefined,
                   }}
                 />
               </div>
