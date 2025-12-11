@@ -6,7 +6,9 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { jwtVerify } from "jose"; // Import untuk mendekripsi token
 
-const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET);
+const secret = process.env.NEXT_PUBLIC_JWT_SECRET 
+  ? new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET)
+  : null;
 
 // Interceptor untuk menambahkan token ke setiap permintaan
 axiosInstance.interceptors.request.use(
@@ -17,10 +19,14 @@ axiosInstance.interceptors.request.use(
     const encryptedToken = Cookies.get("auth");
     if (encryptedToken) {
       try {
+        if (!secret) {
+          console.warn("JWT secret not configured");
+          return config;
+        }
         const { payload } = await jwtVerify(encryptedToken, secret);
         token = payload.token as string;
       } catch (error) {
-        console.warn("Failed to decrypt token from cookie, falling back to localStorage");
+        console.error("Failed to decrypt token", error);
       }
     }
 
@@ -65,18 +71,15 @@ export const dataProvider = (
     const queryFilters = generateFilter(filters);
 
     const query: {
-      page?: number;
-      limit?: number | string;
+      _start?: number;
+      _end?: number;
       _sort?: string;
       _order?: string;
     } = {};
 
     if (mode === "server") {
-      query.page = current;
-      query.limit = pageSize;
-    } else if (mode === "off") {
-      // Fetch all data when pagination is off
-      query.limit = "all";
+      query._start = (current - 1) * pageSize;
+      query._end = current * pageSize;
     }
 
     const generatedSort = generateSort(sorters);
@@ -95,22 +98,11 @@ export const dataProvider = (
       headers: headersFromMeta,
     });
 
-    // Handle nested data structures: { data: [...], total: N }
-    let responseData = Array.isArray(data) ? data : data?.data;
-    
-    // Ensure responseData is always an array
-    if (!Array.isArray(responseData)) {
-      responseData = [];
-    }
-    
-    const total =
-      data?.total ??
-      (headers["x-total-count"] ? +headers["x-total-count"] : undefined) ??
-      responseData.length;
+    const total = +headers["x-total-count"];
 
     return {
-      data: responseData,
-      total,
+      data,
+      total: total || data.length,
     };
   },
 
@@ -123,14 +115,8 @@ export const dataProvider = (
       { headers }
     );
 
-    // Handle nested data structures
-    let responseData = Array.isArray(data) ? data : data?.data;
-    if (!Array.isArray(responseData)) {
-      responseData = [];
-    }
-
     return {
-      data: responseData,
+      data,
     };
   },
 

@@ -1,7 +1,11 @@
 import axios from "axios";
 import type { HttpError } from "@refinedev/core";
 
-const axiosInstance = axios.create();
+const axiosInstance = axios.create({
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+});
 
 axiosInstance.interceptors.response.use(
   (response) => {

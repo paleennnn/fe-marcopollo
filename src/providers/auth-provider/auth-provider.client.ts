@@ -15,7 +15,10 @@ export const authProviderClient: AuthProvider = {
     try {
       const response = await fetch(dataProviders.getApiUrl() + "/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
         body: JSON.stringify({ username, password }),
       });
 
@@ -40,24 +43,10 @@ export const authProviderClient: AuthProvider = {
 
       localStorage.setItem("token", actualToken);
 
-      // SIMPAN USER DENGAN FORMAT BENAR
-      const u = data.user;
-
-      const formattedUser = {
-        id: u.id,
-        name: u.fullname ?? u.username,
-        fullname: u.fullname,
-        username: u.username,
-        avatar: `https://ui-avatars.com/api/?name=${u.fullname}`,
-        role: u.role,
-        email: u.email,
-        phone: u.phone,
-        address: u.address,
-        createdAt: u.createdAt,
-        updatedAt: u.updatedAt,
-      };
-
-      localStorage.setItem("user", JSON.stringify(formattedUser));
+      // Simpan data pengguna di localStorage TANPA token
+      const userDataWithoutToken = { ...data };
+      delete userDataWithoutToken.token; // Hapus objek token dari data pengguna
+      localStorage.setItem("user", JSON.stringify(userDataWithoutToken));
 
       return { success: true, redirectTo: "/dashboard" };
     } catch {
