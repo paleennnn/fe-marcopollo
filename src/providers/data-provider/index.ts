@@ -2,12 +2,17 @@
 
 import { dataProvider } from "@rest-data-provider";
 
-// Use environment variable at runtime (client-side)
-const API_URL = typeof window !== "undefined" 
-  ? process.env.NEXT_PUBLIC_BE_URL 
-  : "";
+// Get API URL - prioritize runtime env var over build-time
+const getApiUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_BE_URL;
+  if (envUrl) {
+    console.log("✅ Using NEXT_PUBLIC_BE_URL:", envUrl);
+    return envUrl;
+  }
+  console.warn("⚠️ NEXT_PUBLIC_BE_URL not set!");
+  return "";
+};
 
-// For SSR, fallback to env at build time
-const FALLBACK_API_URL = process.env.NEXT_PUBLIC_BE_URL || "";
+const API_URL = getApiUrl();
 
-export const dataProviders = dataProvider(API_URL || FALLBACK_API_URL);
+export const dataProviders = dataProvider(API_URL);
