@@ -239,6 +239,15 @@ export const Dashboard = () => {
       const usersData = extractArrayData(users);
       const ordersData = extractArrayData(orders);
 
+      console.log('✅ FINAL EXTRACTED DATA:', {
+        kambings: kambingsData.length,
+        materials: materialsData.length,
+        users: usersData.length,
+        orders: ordersData.length,
+        kambingsItems: kambingsData.slice(0, 3),
+        materialsItems: materialsData.slice(0, 3),
+      });
+
       const allRecentOrders = ordersData
         .map((order): OrderData => ({
           id_order: order.id_order || order.idOrder || "",
