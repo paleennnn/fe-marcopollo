@@ -91,7 +91,7 @@ export const dataProvider = (
     const responseData = data?.data ?? data;
     const total =
       data?.total ??
-      +headers["x-total-count"] ??
+      (headers["x-total-count"] ? +headers["x-total-count"] : undefined) ??
       (Array.isArray(responseData) ? responseData.length : 0);
 
     return {
