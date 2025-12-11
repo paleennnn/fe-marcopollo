@@ -311,7 +311,6 @@ export const Dashboard = () => {
       title: "Bibit",
       dataIndex: "jumlah_bibit",
       key: "jumlah_bibit",
-      align: "right" as const,
       render: (value: number) => `${value.toLocaleString("id-ID")} ekor`,
     },
     {
@@ -326,7 +325,7 @@ export const Dashboard = () => {
       ),
     },
     {
-      title: "Tanggal Panen",
+      title: "Perkiraan Tanggal Panen",
       dataIndex: "tanggal_panen",
       key: "tanggal_panen",
       render: (date: string) => dayjs(date).format("DD MMM YYYY"),

@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useTable, List, ShowButton } from "@refinedev/antd";
 import { useDataProvider } from "@refinedev/core";
-import { Table, Typography, Tag, Space, Empty, Skeleton, Button } from "antd";
+import { Table, Typography, Tag, Space, Empty, Skeleton, Button, DatePicker } from "antd";
 import {
   HistoryOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
@@ -48,6 +49,9 @@ const renderProfit = (record: any) => {
 };
 
 export const RiwayatPanenList = () => {
+  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
   const { tableProps, tableQueryResult } = useTable({
     resource: "leles-riwayat-panen",
     syncWithLocation: true,
@@ -57,15 +61,28 @@ export const RiwayatPanenList = () => {
   });
 
   const isLoading = tableQueryResult?.isLoading || false;
-
   const dataProvider = useDataProvider();
-  const [exportLoading, setExportLoading] = useState(false);
 
-  const dataSource = React.useMemo(
-    () => getDataSource(tableProps),
-    [tableProps]
-  );
-  const rowCount = dataSource.length;
+  const dataSource = useMemo(() => getDataSource(tableProps), [tableProps]);
+
+  // Filter data by month
+  const filteredData = useMemo(() => {
+    if (!selectedMonth) return dataSource;
+
+    const startOfMonth = selectedMonth.startOf("month");
+    const endOfMonth = selectedMonth.endOf("month");
+
+    return dataSource.filter((item: any) => {
+      const panenDate = dayjs(item.tanggalPanen);
+      return (
+        panenDate.isSame(startOfMonth, "day") ||
+        panenDate.isSame(endOfMonth, "day") ||
+        (panenDate.isAfter(startOfMonth) && panenDate.isBefore(endOfMonth))
+      );
+    });
+  }, [dataSource, selectedMonth]);
+
+  const rowCount = filteredData.length;
 
   const handleExport = async (type: "excel" | "pdf") => {
     setExportLoading(true);
@@ -78,11 +95,29 @@ export const RiwayatPanenList = () => {
           pageSize: 10000,
           mode: "server",
         },
-        filters: tableProps.filters,
       });
 
-      const allData = (data as any)?.data || data || [];
-      const title = "Riwayat Panen Lele";
+      let allData = (data as any)?.data || data || [];
+
+      // Apply month filter to export data
+      if (selectedMonth) {
+        const startOfMonth = selectedMonth.startOf("month");
+        const endOfMonth = selectedMonth.endOf("month");
+
+        allData = allData.filter((item: any) => {
+          const panenDate = dayjs(item.tanggalPanen);
+          return (
+            panenDate.isSame(startOfMonth, "day") ||
+            panenDate.isSame(endOfMonth, "day") ||
+            (panenDate.isAfter(startOfMonth) && panenDate.isBefore(endOfMonth))
+          );
+        });
+      }
+
+      const monthText = selectedMonth
+        ? ` - ${selectedMonth.format("MMMM YYYY")}`
+        : "";
+      const title = `Riwayat Panen Lele${monthText}`;
 
       if (type === "excel") {
         const workbook = new ExcelJS.Workbook();
@@ -124,7 +159,10 @@ export const RiwayatPanenList = () => {
         const blob = new Blob([buffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
-        saveAs(blob, `Riwayat_Panen_${dayjs().format("YYYY-MM-DD")}.xlsx`);
+        saveAs(
+          blob,
+          `Riwayat_Panen${monthText.replace(" - ", "_")}_${dayjs().format("YYYY-MM-DD")}.xlsx`
+        );
       } else {
         const doc = new jsPDF();
         const tableColumn = [
@@ -152,14 +190,21 @@ export const RiwayatPanenList = () => {
         ]);
 
         doc.text(title, 14, 15);
+        if (selectedMonth) {
+          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, 22);
+          doc.text(`Total Data: ${allData.length}`, 14, 29);
+        }
+
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 20,
+          startY: selectedMonth ? 35 : 20,
           styles: { fontSize: 8 },
         });
 
-        doc.save(`Riwayat_Panen_${dayjs().format("YYYY-MM-DD")}.pdf`);
+        doc.save(
+          `Riwayat_Panen${monthText.replace(" - ", "_")}_${dayjs().format("YYYY-MM-DD")}.pdf`
+        );
       }
     } catch (error) {
       console.error("Export Error:", error);
@@ -198,6 +243,14 @@ export const RiwayatPanenList = () => {
       }
       headerButtons={() => (
         <Space>
+          <DatePicker
+            picker="month"
+            placeholder="Filter Bulan"
+            onChange={(date) => setSelectedMonth(date)}
+            value={selectedMonth}
+            style={{ width: 150 }}
+            allowClear
+          />
           <Button
             icon={<FileExcelOutlined />}
             onClick={() => handleExport("excel")}
@@ -222,7 +275,7 @@ export const RiwayatPanenList = () => {
       ) : (
         <Table
           {...tableProps}
-          dataSource={dataSource}
+          dataSource={filteredData}
           rowKey="idPanen"
           pagination={{
             ...tableProps.pagination,
