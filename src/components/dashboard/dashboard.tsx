@@ -186,29 +186,46 @@ export const Dashboard = () => {
       const responses = await Promise.all(fetchPromises);
       const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = responses;
 
-      // Process all responses
+      // Process all responses with proper error handling
+      const parseJson = async (res: Response, endpoint: string, defaultValue: any = null) => {
+        try {
+          if (!res.ok) {
+            console.error(`❌ API Error [${res.status}] ${endpoint}:`, res.statusText);
+            const text = await res.text();
+            console.error('Response body:', text.substring(0, 200));
+            return defaultValue;
+          }
+          const json = await res.json();
+          console.log(`✅ ${endpoint}:`, json);
+          return json;
+        } catch (err) {
+          console.error(`❌ Parse error ${endpoint}:`, err);
+          return defaultValue;
+        }
+      };
+
       const [kambings, materials, users, orders, finance] = await Promise.all([
-        kambingsRes.json(),
-        materialsRes.json(),
-        usersRes.json(),
-        ordersRes.json(),
-        financeRes.ok ? financeRes.json() : { data: null },
+        parseJson(kambingsRes, '/kambings', { data: [] }),
+        parseJson(materialsRes, '/materials', { data: [] }),
+        parseJson(usersRes, '/users', { data: [] }),
+        parseJson(ordersRes, '/orders', { data: [] }),
+        parseJson(financeRes, '/finance/summary', { data: null }),
       ]);
 
-      // Extract data with type safety
-      const kambingsData = Array.isArray(kambings) ? kambings : kambings.data || [];
-      const materialsData = Array.isArray(materials) ? materials : materials.data || [];
-      const usersData = Array.isArray(users) ? users : users.data || [];
+      // Extract data with type safety - handle both array and nested formats
+      const extractArrayData = (response: any): any[] => {
+        if (Array.isArray(response)) return response;
+        if (response?.data) {
+          if (Array.isArray(response.data)) return response.data;
+          if (Array.isArray(response.data.data)) return response.data.data;
+        }
+        return [];
+      };
 
-      // Process orders data
-      let ordersData: any[] = [];
-      if (Array.isArray(orders)) {
-        ordersData = orders;
-      } else if (orders?.data?.data && Array.isArray(orders.data.data)) {
-        ordersData = orders.data.data;
-      } else if (orders?.data && Array.isArray(orders.data)) {
-        ordersData = orders.data;
-      }
+      const kambingsData = extractArrayData(kambings);
+      const materialsData = extractArrayData(materials);
+      const usersData = extractArrayData(users);
+      const ordersData = extractArrayData(orders);
 
       const allRecentOrders = ordersData
         .map((order): OrderData => ({
