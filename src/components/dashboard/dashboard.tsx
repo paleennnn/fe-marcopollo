@@ -22,7 +22,7 @@ import { FinanceComparison } from "@components/finance/finance-comparison";
 import { CustomerWallet } from "@components/customer/customer-wallet";
 import { PieChartStatus } from "@components/finance/pie-chart-status";
 import { BarChartRevenue } from "@components/finance/bar-chart-revenue";
-import { useApiUrl, useNavigation, useGetIdentity } from "@refinedev/core";
+import { useApiUrl, useNavigation, useGetIdentity, useList } from "@refinedev/core";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
@@ -141,13 +141,34 @@ const fetchKolamStatus = async (apiUrl: string, headers: HeadersInit): Promise<K
 };
 
 export const Dashboard = () => {
-  const apiUrl = useApiUrl();
   const { push } = useNavigation();
   const { data: identity, isLoading: identityLoading } = useGetIdentity<any>();
   
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use Refine hooks untuk fetch data - ini jauh lebih reliable
+  const { data: kambingsData, isLoading: kambingsLoading } = useList({
+    resource: "kambings",
+    pagination: { pageSize: 100 },
+    queryOptions: { enabled: true },
+  });
+
+  const { data: materialsData, isLoading: materialsLoading } = useList({
+    resource: "materials",
+    pagination: { pageSize: 100 },
+    queryOptions: { enabled: true },
+  });
+
+  const { data: usersData, isLoading: usersLoading } = useList({
+    resource: "users",
+    pagination: { pageSize: 100 },
+    queryOptions: { enabled: true },
+  });
+
+  const { data: ordersData, isLoading: ordersLoading } = useList({
+    resource: "orders",
+    pagination: { pageSize: 100 },
+    queryOptions: { enabled: true },
+  });
+
   const [recentOrders, setRecentOrders] = useState<OrderData[]>([]);
   const [kolamStatus, setKolamStatus] = useState<KolamStatus[]>([]);
   const [kolamLoading, setKolamLoading] = useState(false);
@@ -159,152 +180,77 @@ export const Dashboard = () => {
   const currentMonth = useMemo(() => dayjs().month() + 1, []);
   const currentYear = useMemo(() => dayjs().year(), []);
 
-  const fetchDashboardData = useCallback(async () => {
-    if (isCustomer) {
-      setStatsLoading(false);
-      return;
-    }
+  // Hitung stats dari data yang sudah di-fetch oleh hooks
+  const stats = useMemo(() => {
+    const kambs = kambingsData?.data || [];
+    const mats = materialsData?.data || [];
+    const uses = usersData?.data || [];
+    const ords = ordersData?.data || [];
 
-    try {
-      setStatsLoading(true);
-      setError(null);
+    return {
+      totalKambing: kambs.length || 0,
+      totalMaterial: mats.length || 0,
+      totalCustomer: uses.filter((u: any) => u.role === "customer").length || 0,
+      totalOrdersBulanIni: ords.filter(
+        (o: any) =>
+          dayjs(o.tanggalOrder).month() + 1 === currentMonth &&
+          dayjs(o.tanggalOrder).year() === currentYear
+      ).length || 0,
+      totalRevenueBulanIni: ords
+        .filter(
+          (o: any) =>
+            dayjs(o.tanggalOrder).month() + 1 === currentMonth &&
+            dayjs(o.tanggalOrder).year() === currentYear
+        )
+        .reduce((sum: number, o: any) => sum + (o.totalHarga || 0), 0) || 0,
+      totalProfitBulanIni: 0,
+    };
+  }, [kambingsData?.data, materialsData?.data, usersData?.data, ordersData?.data, currentMonth, currentYear]);
 
-      const token = localStorage.getItem("token");
-      const headers: HeadersInit = { 
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` })
-      };
-
-      const fetchPromises = [
-        fetch(`${apiUrl}/kambings`, { headers }),
-        fetch(`${apiUrl}/materials`, { headers }),
-        fetch(`${apiUrl}/users`, { headers }),
-        fetch(`${apiUrl}/orders`, { headers }),
-        fetch(`${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`, { headers }),
-      ];
-
-      const responses = await Promise.all(fetchPromises);
-      const [kambingsRes, materialsRes, usersRes, ordersRes, financeRes] = responses;
-
-      // Process all responses with proper error handling
-      const parseJson = async (res: Response, endpoint: string, defaultValue: any = null) => {
-        try {
-          if (!res.ok) {
-            console.error(`❌ API Error [${res.status}] ${endpoint}:`, res.statusText);
-            const text = await res.text();
-            console.error('Response body:', text.substring(0, 200));
-            return defaultValue;
-          }
-          const json = await res.json();
-          console.log(`✅ ${endpoint}:`, json);
-          return json;
-        } catch (err) {
-          console.error(`❌ Parse error ${endpoint}:`, err);
-          return defaultValue;
-        }
-      };
-
-      const [kambings, materials, users, orders, finance] = await Promise.all([
-        parseJson(kambingsRes, '/kambings', { data: [] }),
-        parseJson(materialsRes, '/materials', { data: [] }),
-        parseJson(usersRes, '/users', { data: [] }),
-        parseJson(ordersRes, '/orders', { data: [] }),
-        parseJson(financeRes, '/finance/summary', { data: null }),
-      ]);
-
-      // Extract data with type safety - handle both array and nested formats
-      const extractArrayData = (response: any): any[] => {
-        console.log('🔍 Extracting from:', response);
-        if (Array.isArray(response)) {
-          console.log('✅ Response is array, length:', response.length);
-          return response;
-        }
-        if (response?.data) {
-          console.log('📦 response.data exists:', response.data);
-          if (Array.isArray(response.data)) {
-            console.log('✅ response.data is array, length:', response.data.length);
-            return response.data;
-          }
-          if (Array.isArray(response.data.data)) {
-            console.log('✅ response.data.data is array, length:', response.data.data.length);
-            return response.data.data;
-          }
-        }
-        console.warn('❌ Could not extract array from response');
-        return [];
-      };
-
-      const kambingsData = extractArrayData(kambings);
-      const materialsData = extractArrayData(materials);
-      const usersData = extractArrayData(users);
-      const ordersData = extractArrayData(orders);
-
-      console.log('✅ FINAL EXTRACTED DATA:', {
-        kambings: kambingsData.length,
-        materials: materialsData.length,
-        users: usersData.length,
-        orders: ordersData.length,
-        kambingsItems: kambingsData.slice(0, 3),
-        materialsItems: materialsData.slice(0, 3),
-      });
-
-      const allRecentOrders = ordersData
-        .map((order): OrderData => ({
-          id_order: order.id_order || order.idOrder || "",
-          user: order.user || { fullname: "" },
-          totalHarga: order.totalHarga || order.total_harga || 0,
-          tanggalOrder: order.tanggalOrder || order.tanggal_order || order.created_at || "",
-          statusPembayaran: order.statusPembayaran || order.status_pembayaran || "",
-        }))
-        .sort((a, b) => dayjs(b.tanggalOrder).unix() - dayjs(a.tanggalOrder).unix())
-        .slice(0, RECENT_ITEMS_LIMIT);
-
-      const financeData = finance?.data?.ringkasan;
-
-      // Log extracted data
-      console.log('📊 Extracted data:', {
-        kambings: kambingsData.length,
-        materials: materialsData.length,
-        users: usersData.length,
-        orders: ordersData.length,
-      });
-
-      // Set state
-      setStats({
-        totalKambing: kambingsData.length,
-        totalMaterial: materialsData.length,
-        totalCustomer: usersData.filter((u: any) => u.role === "customer").length,
-        totalOrdersBulanIni: ordersData.length,
-        totalRevenueBulanIni: financeData?.omset?.total ?? 0,
-        totalProfitBulanIni: financeData?.profit?.total ?? 0,
-      });
-
-      setRecentOrders(allRecentOrders);
-
-      // Fetch kolam status separately
-      setKolamLoading(true);
-      const kolamData = await fetchKolamStatus(apiUrl, headers);
-      setKolamStatus(kolamData);
-      setKolamLoading(false);
-      setStatsLoading(false);
-    } catch (error: any) {
-      console.error("❌ Dashboard fetch error:", error);
-      console.error("Error message:", error?.message);
-      console.error("Error stack:", error?.stack);
-      setError(error?.message || "Gagal memuat data dashboard");
-      setStatsLoading(false);
-      setKolamLoading(false);
-    }
-  }, [apiUrl, currentMonth, currentYear, isCustomer]);
-
+  // Fetch kolam status
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    const fetchKolamStatus = async () => {
+      try {
+        setKolamLoading(true);
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        };
 
+        const response = await fetch(`http://localhost:3333/api/leles`, { headers });
+        if (!response.ok) throw new Error("Failed to fetch kolam");
+        
+        const json = await response.json();
+        const kolamData = Array.isArray(json) ? json : json?.data || [];
+        setKolamStatus(kolamData);
+      } catch (err) {
+        console.error("Error fetching kolam status:", err);
+        setKolamStatus([]);
+      } finally {
+        setKolamLoading(false);
+      }
+    };
+
+    if (isAdmin) fetchKolamStatus();
+  }, [isAdmin]);
+
+  // Extract recent orders
+  useEffect(() => {
+    if (ordersData?.data) {
+      const recent = (ordersData.data as OrderData[])
+        .sort(
+          (a, b) =>
+            new Date(b.tanggalOrder).getTime() - new Date(a.tanggalOrder).getTime()
+        )
+        .slice(0, RECENT_ITEMS_LIMIT);
+      setRecentOrders(recent);
+    }
+  }, [ordersData?.data]);
   // 🔧 MEMOIZED VALUES
   const isLoading = useMemo(() => 
-    identityLoading || statsLoading, 
-    [identityLoading, statsLoading]
+    identityLoading || kambingsLoading || materialsLoading || usersLoading || ordersLoading, 
+    [identityLoading, kambingsLoading, materialsLoading, usersLoading, ordersLoading]
   );
 
   const recentOrdersColumns = useMemo(() => [
