@@ -288,7 +288,9 @@ export const Dashboard = () => {
       setKolamLoading(false);
       setStatsLoading(false);
     } catch (error: any) {
-      console.error("Dashboard fetch error:", error);
+      console.error("❌ Dashboard fetch error:", error);
+      console.error("Error message:", error?.message);
+      console.error("Error stack:", error?.stack);
       setError(error?.message || "Gagal memuat data dashboard");
       setStatsLoading(false);
       setKolamLoading(false);
