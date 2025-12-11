@@ -214,11 +214,23 @@ export const Dashboard = () => {
 
       // Extract data with type safety - handle both array and nested formats
       const extractArrayData = (response: any): any[] => {
-        if (Array.isArray(response)) return response;
-        if (response?.data) {
-          if (Array.isArray(response.data)) return response.data;
-          if (Array.isArray(response.data.data)) return response.data.data;
+        console.log('🔍 Extracting from:', response);
+        if (Array.isArray(response)) {
+          console.log('✅ Response is array, length:', response.length);
+          return response;
         }
+        if (response?.data) {
+          console.log('📦 response.data exists:', response.data);
+          if (Array.isArray(response.data)) {
+            console.log('✅ response.data is array, length:', response.data.length);
+            return response.data;
+          }
+          if (Array.isArray(response.data.data)) {
+            console.log('✅ response.data.data is array, length:', response.data.data.length);
+            return response.data.data;
+          }
+        }
+        console.warn('❌ Could not extract array from response');
         return [];
       };
 
@@ -239,6 +251,14 @@ export const Dashboard = () => {
         .slice(0, RECENT_ITEMS_LIMIT);
 
       const financeData = finance?.data?.ringkasan;
+
+      // Log extracted data
+      console.log('📊 Extracted data:', {
+        kambings: kambingsData.length,
+        materials: materialsData.length,
+        users: usersData.length,
+        orders: ordersData.length,
+      });
 
       // Set state
       setStats({
