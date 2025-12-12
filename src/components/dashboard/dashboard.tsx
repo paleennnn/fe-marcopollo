@@ -26,7 +26,6 @@ import { useApiUrl, useNavigation, useGetIdentity, useList } from "@refinedev/co
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
-import { error } from "console";
 
 const { Title, Text } = Typography;
 
@@ -143,42 +142,48 @@ const fetchKolamStatus = async (apiUrl: string, headers: HeadersInit): Promise<K
 };
 
 export const Dashboard = () => {
+  const apiUrl = useApiUrl();
   const { push } = useNavigation();
   const { data: identity, isLoading: identityLoading } = useGetIdentity<any>();
   
-  // Use Refine hooks untuk fetch data - ini jauh lebih reliable
+  // Get user role FIRST sebelum menggunakan data apapun
+  const userRole = useMemo(() => getUserRole(), []);
+  const isAdmin = userRole === "admin";
+  const isCustomer = userRole === "customer";
+  
+  // Finance data state untuk omset dan profit
+  const [financeData, setFinanceData] = useState<any>(null);
+  const [financeLoading, setFinanceLoading] = useState(false);
+  
+  // Use Refine hooks untuk fetch data - HANYA untuk admin
   const { data: kambingsData, isLoading: kambingsLoading } = useList({
     resource: "kambings",
     pagination: { pageSize: 100 },
-    queryOptions: { enabled: true },
+    queryOptions: { enabled: isAdmin }, // ✅ ONLY fetch jika admin
   });
 
   const { data: materialsData, isLoading: materialsLoading } = useList({
     resource: "materials",
     pagination: { pageSize: 100 },
-    queryOptions: { enabled: true },
+    queryOptions: { enabled: isAdmin }, // ✅ ONLY fetch jika admin
   });
 
   const { data: usersData, isLoading: usersLoading } = useList({
     resource: "users",
     pagination: { pageSize: 100 },
-    queryOptions: { enabled: true },
+    queryOptions: { enabled: isAdmin }, // ✅ ONLY fetch jika admin
   });
 
   const { data: ordersData, isLoading: ordersLoading } = useList({
     resource: "orders",
     pagination: { pageSize: 100 },
-    queryOptions: { enabled: true },
+    queryOptions: { enabled: isAdmin }, // ✅ ONLY fetch jika admin
   });
 
   const [recentOrders, setRecentOrders] = useState<OrderData[]>([]);
   const [kolamStatus, setKolamStatus] = useState<KolamStatus[]>([]);
   const [kolamLoading, setKolamLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const userRole = useMemo(() => getUserRole(), []);
-  const isAdmin = userRole === "admin";
-  const isCustomer = userRole === "customer";
   
   const currentMonth = useMemo(() => dayjs().month() + 1, []);
   const currentYear = useMemo(() => dayjs().year(), []);
@@ -208,11 +213,50 @@ export const Dashboard = () => {
       totalMaterial: mats.length || 0,
       totalCustomer: uses.filter((u: any) => u.role === "customer").length || 0,
       totalOrdersBulanIni: ordersThisMonth.length || 0,
-      totalRevenueBulanIni: ordersThisMonth
-        .reduce((sum: number, o: any) => sum + (o.totalHarga || o.total_harga || 0), 0) || 0,
-      totalProfitBulanIni: 0,
+      totalRevenueBulanIni: financeData?.ringkasan?.omset?.total ?? 0, // ✅ dari finance endpoint
+      totalProfitBulanIni: financeData?.ringkasan?.profit?.total ?? 0, // ✅ dari finance endpoint
     };
-  }, [kambingsData?.data, materialsData?.data, usersData?.data, ordersData?.data, currentMonth, currentYear]);
+  }, [kambingsData?.data, materialsData?.data, usersData?.data, ordersData?.data, currentMonth, currentYear, financeData]);
+
+  // Fetch finance summary untuk omset dan profit
+  useEffect(() => {
+    if (!isAdmin) {
+      setFinanceLoading(false);
+      return;
+    }
+
+    const fetchFinanceData = async () => {
+      try {
+        setFinanceLoading(true);
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        };
+
+        const response = await fetch(
+          `${apiUrl}/finance/summary?month=${currentMonth}&year=${currentYear}`,
+          { headers }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ Finance data fetched:", data);
+          setFinanceData(data.data || data);
+        } else {
+          console.warn("⚠️ Failed to fetch finance data:", response.status);
+          setFinanceData(null);
+        }
+      } catch (err) {
+        console.error("❌ Error fetching finance data:", err);
+        setFinanceData(null);
+      } finally {
+        setFinanceLoading(false);
+      }
+    };
+
+    fetchFinanceData();
+  }, [apiUrl, currentMonth, currentYear, isAdmin]);
 
   // Fetch kolam status
   useEffect(() => {
@@ -293,8 +337,8 @@ export const Dashboard = () => {
   }, [ordersData?.data]);
   // 🔧 MEMOIZED VALUES
   const isLoading = useMemo(() => 
-    identityLoading || kambingsLoading || materialsLoading || usersLoading || ordersLoading, 
-    [identityLoading, kambingsLoading, materialsLoading, usersLoading, ordersLoading]
+    identityLoading || kambingsLoading || materialsLoading || usersLoading || ordersLoading || financeLoading, 
+    [identityLoading, kambingsLoading, materialsLoading, usersLoading, ordersLoading, financeLoading]
   );
 
   const recentOrdersColumns = useMemo(() => [
@@ -402,8 +446,8 @@ export const Dashboard = () => {
           color: "#52c41a",
           formatter: (v: number) => formatCurrency(v)
         },
-      ].map((item, index) => (
-        <Col xs={24} sm={12} lg={8} key={index}>
+      ].map((item) => (
+        <Col xs={24} sm={12} lg={8} key={item.title}>
           <Card hoverable>
             <Statistic
               title={item.title}
@@ -423,7 +467,7 @@ export const Dashboard = () => {
     return (
       <Row gutter={[16, 16]}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <Col xs={24} sm={12} lg={8} key={i}>
+          <Col xs={24} sm={12} lg={8} key={`skeleton-${i}`}>
             <Skeleton active paragraph={{ rows: 2 }} />
           </Col>
         ))}

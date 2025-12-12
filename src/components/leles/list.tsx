@@ -116,7 +116,7 @@ export const LeleList = () => {
       >
         <Row gutter={[16, 16]}>
           {Array.from({ length: 10 }).map((_, index) => (
-            <Col xs={24} sm={12} md={8} lg={6} xl={4.8} key={index}>
+            <Col xs={24} sm={12} md={8} lg={6} xl={4.8} key={`skeleton-${index}`}>
               <Skeleton active avatar paragraph={{ rows: 2 }} />
             </Col>
           ))}

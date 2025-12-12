@@ -223,7 +223,7 @@ export const FinanceDashboard = () => {
     return (
       <Row gutter={[16, 16]}>
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Col xs={24} sm={12} lg={8} key={i}>
+          <Col xs={24} sm={12} lg={8} key={`skeleton-${i}`}>
             <Skeleton active paragraph={{ rows: 2 }} />
           </Col>
         ))}

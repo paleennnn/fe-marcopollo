@@ -369,7 +369,7 @@ export const FinancialReportsList = () => {
             render={(_, record: any) => (
               <Space direction="vertical" size={0}>
                 {record.orderDetails?.map((detail: any, idx: number) => (
-                  <Text key={idx} style={{ fontSize: 12 }}>
+                  <Text key={`${record.id_order || record.id}-${idx}`} style={{ fontSize: 12 }}>
                     {detail.namaProduk} (x{detail.jumlah}){" "}
                     <Tag
                       color={

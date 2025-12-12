@@ -43,10 +43,11 @@ export const authProviderClient: AuthProvider = {
 
       localStorage.setItem("token", actualToken);
 
-      // Simpan data pengguna di localStorage TANPA token
-      const userDataWithoutToken = { ...data };
-      delete userDataWithoutToken.token; // Hapus objek token dari data pengguna
-      localStorage.setItem("user", JSON.stringify(userDataWithoutToken));
+      // Simpan HANYA data pengguna (nested di user property)
+      const userDataToStore = data.user || data;
+      console.log("🔐 Saving to localStorage:", userDataToStore);
+      
+      localStorage.setItem("user", JSON.stringify(userDataToStore));
 
       return { success: true, redirectTo: "/dashboard" };
     } catch {
@@ -130,21 +131,37 @@ export const authProviderClient: AuthProvider = {
   // GET IDENTITY
   getIdentity: async () => {
     const auth = localStorage.getItem("user");
-    if (!auth) return null;
+    console.log("🔍 getIdentity - localStorage:", auth);
+    
+    if (!auth) {
+      console.warn("⚠️ No user in localStorage");
+      return null;
+    }
+    
     try {
       const user = JSON.parse(auth);
-      return {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        role: user.role,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+      console.log("👥 User object:", user);
+      
+      // Fallback dari fullname jika name tidak ada
+      const userName = user.name || user.fullname || "User";
+      const userAvatar = user.avatar || "";
+      
+      const identity = {
+        id: user.id || 0,
+        name: userName,
+        avatar: userAvatar,
+        role: user.role || "guest",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        createdAt: user.createdAt || "",
+        updatedAt: user.updatedAt || "",
       };
-    } catch {
+      
+      console.log("✅ Identity returned:", identity);
+      return identity;
+    } catch (error) {
+      console.error("❌ Error parsing user:", error);
       return null;
     }
   },

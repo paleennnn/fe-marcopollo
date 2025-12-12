@@ -12,13 +12,21 @@ import {
   Typography,
   Dropdown,
   MenuProps,
+  Button,
 } from "antd";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, MenuOutlined, RightOutlined, LeftOutlined } from "@ant-design/icons";
+import { useThemedLayoutContext } from "@refinedev/antd";
 
 const { Text } = Typography;
 const { useToken } = theme;
+
+const AppTitle: React.FC = () => (
+  <Text strong style={{ fontSize: "18px" }}>
+    Marcopollo
+  </Text>
+);
 
 type IUser = {
   id: number;
@@ -35,14 +43,48 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
   const { mode, setMode } = useContext(ColorModeContext);
   const router = useRouter();
   const { mutate: logout } = useLogout();
+  const { siderCollapsed, setSiderCollapsed } = useThemedLayoutContext();
   
   const [isNameHovered, setIsNameHovered] = useState(false);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [displayUser, setDisplayUser] = useState<IUser | null>(null);
+
+  // Fallback dari localStorage jika useGetIdentity belum tersinkronisasi
+  useEffect(() => {
+    if (user) {
+      setDisplayUser(user);
+    } else {
+      // Ambil dari localStorage sebagai fallback
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const parsed = JSON.parse(userStr);
+          const displayData: IUser = {
+            id: parsed.id || 0,
+            name: parsed.name || parsed.fullname || "User",
+            avatar: parsed.avatar || "",
+            email: parsed.email || "",
+          };
+          setDisplayUser(displayData);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const headerStyles: React.CSSProperties = {
     backgroundColor: token.colorBgElevated,
     display: "flex",
-    justifyContent: "flex-end",
+    justifyContent: "space-between", // Diubah untuk memberikan ruang di kiri dan kanan
     alignItems: "center",
     padding: "0px 24px",
     height: "64px",
@@ -91,6 +133,20 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
 
   return (
     <AntdLayout.Header style={headerStyles}>
+      {/* Left section - Sidebar toggle button */}
+      <div>
+        {isMobile ? (
+          <AppTitle />
+        ) : (
+          <Button
+            size="large"
+            onClick={() => setSiderCollapsed(!siderCollapsed)}
+            icon={siderCollapsed ? <RightOutlined /> : <LeftOutlined />}
+          />
+        )}
+      </div>
+
+      {/* Right section - Theme toggle and user info */}
       <Space>
         <Switch
           checkedChildren="🌛"
@@ -98,9 +154,9 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
           onChange={setMode}
           defaultChecked={mode === "dark"}
         />
-        {(user?.name || user?.avatar) && (
+        {(displayUser?.name || displayUser?.avatar) && (
           <Space style={{ marginLeft: "8px" }} size="middle">
-            {user?.name && (
+            {displayUser?.name && (
               <Text 
                 strong 
                 onClick={() => router.push("/profile")}
@@ -112,7 +168,7 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
                   color: isNameHovered ? token.colorPrimary : undefined,
                 }}
               >
-                {user.name}
+                {displayUser.name}
               </Text>
             )}
             <Dropdown {...dropdownProps}>
@@ -129,9 +185,10 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = ({
                 onMouseLeave={() => setIsAvatarHovered(false)}
               >
                 <Avatar 
-                  src={user?.avatar} 
-                  alt={user?.name}
+                  src={displayUser?.avatar} 
+                  alt={displayUser?.name}
                   size="default"
+                  icon={!displayUser?.avatar ? <UserOutlined /> : undefined}
                   style={{ 
                     cursor: "pointer",
                     transition: "all 0.3s",
