@@ -45,8 +45,6 @@ export const authProviderClient: AuthProvider = {
 
       // Simpan HANYA data pengguna (nested di user property)
       const userDataToStore = data.user || data;
-      console.log("🔐 Saving to localStorage:", userDataToStore);
-      
       localStorage.setItem("user", JSON.stringify(userDataToStore));
 
       return { success: true, redirectTo: "/dashboard" };
@@ -131,16 +129,13 @@ export const authProviderClient: AuthProvider = {
   // GET IDENTITY
   getIdentity: async () => {
     const auth = localStorage.getItem("user");
-    console.log("🔍 getIdentity - localStorage:", auth);
     
     if (!auth) {
-      console.warn("⚠️ No user in localStorage");
       return null;
     }
     
     try {
       const user = JSON.parse(auth);
-      console.log("👥 User object:", user);
       
       // Fallback dari fullname jika name tidak ada
       const userName = user.name || user.fullname || "User";
@@ -158,7 +153,6 @@ export const authProviderClient: AuthProvider = {
         updatedAt: user.updatedAt || "",
       };
       
-      console.log("✅ Identity returned:", identity);
       return identity;
     } catch (error) {
       console.error("❌ Error parsing user:", error);

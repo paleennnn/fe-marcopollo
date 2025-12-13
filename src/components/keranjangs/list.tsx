@@ -68,7 +68,7 @@ export default function KeranjangListPage() {
   ];
 
   // Ensure dataSource is always an array
-  const apiData = (tableProps.dataSource as any)?.data || [];
+  const apiData = Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
   const safeTableProps = {
     ...tableProps,
     dataSource: Array.isArray(apiData)

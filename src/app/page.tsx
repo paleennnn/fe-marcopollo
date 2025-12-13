@@ -136,7 +136,7 @@ export default function LandingPage() {
                 cover={
                   <img
                     alt={item.nama_kambing}
-                    src={item.image || "/placeholder.png"}
+                    src={item.image || "/images/placeholder.png"}
                     className="h-40 object-cover"
                   />
                 }
@@ -170,7 +170,7 @@ export default function LandingPage() {
                 cover={
                   <img
                     alt={item.nama_material}
-                    src={item.image || "/placeholder.png"}
+                    src={item.image || "/images/placeholder.png"}
                     className="h-40 object-cover"
                   />
                 }
