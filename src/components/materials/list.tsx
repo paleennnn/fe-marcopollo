@@ -145,7 +145,7 @@ export const MaterialList = () => {
               dataSource={materials}
               rowKey="id"
               bordered
-              scroll={{ x: 800 }}
+              scroll={{ x: 1200 }}
               pagination={{
                 ...tableProps?.pagination,
                 showSizeChanger: true,
@@ -193,6 +193,7 @@ export const MaterialList = () => {
               <Table.Column
                 title="Nama Material"
                 dataIndex="namaMaterial"
+                width={180}
                 render={(text: string) => <Text strong>{text}</Text>}
               />
 

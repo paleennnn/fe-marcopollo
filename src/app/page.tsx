@@ -24,7 +24,10 @@ export default function LandingPage() {
   const getImageUrl = (image: string | null) => {
     if (!image) return "/images/placeholder.png";
     // Jika sudah full URL (http/https), gunakan langsung
-    if (image.startsWith("http")) return image;
+    if (image.startsWith("http")) {
+      // Fix double folder: /kambings/kambings/ → /kambings/
+      return image.replace(/\/kambings\/kambings\//g, "/kambings/");
+    }
     // Jika relative path, prepend apiUrl
     return `${apiUrl}/${image}`;
   };
@@ -156,7 +159,7 @@ export default function LandingPage() {
                 onClick={() => handleCardClick(item.id, "kambing")}
               >
                 <Card.Meta
-                  title={item.namaKambing}
+                  title={item.nama_kambing}
                   description={`Rp ${Number(item.harga || 0).toLocaleString(
                     "id-ID"
                   )}`}

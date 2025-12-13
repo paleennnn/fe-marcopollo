@@ -138,7 +138,7 @@ export const KambingList = () => {
               dataSource={kambings}
               rowKey="id"
               bordered
-              scroll={{ x: 900 }}
+              scroll={{ x: 1200 }}
               pagination={{
                 ...tableProps?.pagination,
                 showSizeChanger: true,
@@ -191,6 +191,7 @@ export const KambingList = () => {
               <Table.Column
                 title="Nama Kambing"
                 dataIndex="namaKambing"
+                width={180}
                 render={(text: string, record: BaseRecord) => (
                   <Text strong style={{ color: record.sudah_dibooking ? '#999' : 'inherit' }}>
                     {text}
