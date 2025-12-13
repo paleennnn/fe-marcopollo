@@ -118,133 +118,6 @@ export const KambingList = () => {
 
   const isAdmin = getUserRole() === 'admin'
 
-  // Kolom untuk tabel admin
-  const adminColumns = [
-    {
-      title: 'Foto',
-      dataIndex: 'image',
-      key: 'image',
-      width: 100,
-      render: (image: string, record: BaseRecord) =>
-        image ? (
-          <Image
-            src={`${apiUrl}/${image}`}
-            alt={record.namaKambing}
-            width={60}
-            height={60}
-            style={{
-              objectFit: 'cover',
-              borderRadius: 4,
-              filter: record.sudah_dibooking ? 'grayscale(50%)' : 'none',
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              backgroundColor: '#f0f0f0',
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              filter: record.sudah_dibooking ? 'grayscale(50%)' : 'none',
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              img
-            </Text>
-          </div>
-        ),
-    },
-    {
-      title: 'Nama Kambing',
-      dataIndex: 'namaKambing',
-      key: 'namaKambing',
-      render: (text: string, record: BaseRecord) => (
-        <Text strong style={{ color: record.sudah_dibooking ? '#999' : 'inherit' }}>
-          {text}
-        </Text>
-      ),
-    },
-    {
-      title: 'Umur',
-      dataIndex: 'umur',
-      key: 'umur',
-      render: (umur: number) => <Tag color="blue">{umur} bulan</Tag>,
-    },
-    {
-      title: 'Harga Beli',
-      dataIndex: 'hargaBeli',
-      key: 'hargaBeli',
-      render: (price: number, record: BaseRecord) => (
-        <Text
-          type="danger"
-          style={{
-            color: record.sudah_dibooking ? '#999' : '#f5222d',
-          }}
-        >
-          Rp {price?.toLocaleString('id-ID')}
-        </Text>
-      ),
-    },
-    {
-      title: 'Harga Jual',
-      dataIndex: 'harga',
-      key: 'harga',
-      render: (price: number, record: BaseRecord) => (
-        <Text
-          type="success"
-          style={{
-            color: record.sudah_dibooking ? '#999' : '#52c41a',
-          }}
-        >
-          Rp {price?.toLocaleString('id-ID')}
-        </Text>
-      ),
-    },
-    {
-      title: 'Margin',
-      dataIndex: 'harga',
-      key: 'margin',
-      render: (hargaJual: number, record: any) => {
-        if (!record.hargaBeli || !hargaJual) return '-'
-        const margin = (((hargaJual - record.hargaBeli) / record.hargaBeli) * 100).toFixed(2)
-        return <Tag color={parseFloat(margin) > 20 ? 'green' : 'orange'}>{margin}%</Tag>
-      },
-    },
-    {
-      title: 'Status',
-      dataIndex: 'sudah_dibooking',
-      key: 'sudah_dibooking',
-      render: (sudah_dibooking: boolean) =>
-        sudah_dibooking ? (
-          <Tag color="red" icon={<CheckCircleOutlined />}>
-            Sudah Dibooking
-          </Tag>
-        ) : (
-          <Tag color="green">Tersedia</Tag>
-        ),
-    },
-    {
-      title: 'Aksi',
-      key: 'actions',
-      render: (_: any, record: BaseRecord) => (
-        <Space>
-          <ShowButton
-            hideText
-            size="small"
-            recordItemId={record.id}
-            icon={<EyeOutlined />}
-            title="Detail"
-          />
-          <EditButton hideText size="small" recordItemId={record.id} title="Edit kambing" />
-          <DeleteButton hideText size="small" recordItemId={record.id} title="Hapus kambing" />
-        </Space>
-      ),
-    },
-  ]
-
   return (
     <CanAccess resource="kambings" action="list" fallback={<UnauthorizedPage />}>
       <List
@@ -263,15 +136,164 @@ export const KambingList = () => {
             // Tampilan Tabel untuk Admin
             <Table
               dataSource={kambings}
-              columns={adminColumns}
               rowKey="id"
+              bordered
+              scroll={{ x: 900 }}
               pagination={{
                 ...tableProps?.pagination,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} dari ${total} kambing`,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} dari ${total} kambing`,
               }}
-            />
+            >
+              {/* Foto */}
+              <Table.Column
+                title="Foto"
+                dataIndex="image"
+                width={80}
+                render={(image: string, record: BaseRecord) =>
+                  image ? (
+                    <Image
+                      src={`${apiUrl}/${image}`}
+                      alt={record.namaKambing}
+                      width={50}
+                      height={50}
+                      style={{
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                        filter: record.sudah_dibooking ? 'grayscale(50%)' : 'none',
+                      }}
+                      preview={false}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 50,
+                        height: 50,
+                        backgroundColor: '#f0f0f0',
+                        borderRadius: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        filter: record.sudah_dibooking ? 'grayscale(50%)' : 'none',
+                      }}
+                    >
+                      <Text type="secondary" style={{ fontSize: 10 }}>
+                        img
+                      </Text>
+                    </div>
+                  )
+                }
+              />
+
+              {/* Nama Kambing */}
+              <Table.Column
+                title="Nama Kambing"
+                dataIndex="namaKambing"
+                render={(text: string, record: BaseRecord) => (
+                  <Text strong style={{ color: record.sudah_dibooking ? '#999' : 'inherit' }}>
+                    {text}
+                  </Text>
+                )}
+              />
+
+              {/* Umur */}
+              <Table.Column
+                title="Umur"
+                dataIndex="umur"
+                width={80}
+                render={(umur: number) => <Tag color="blue">{umur} bulan</Tag>}
+              />
+
+              {/* Harga Beli */}
+              <Table.Column
+                title="Harga Beli"
+                dataIndex="hargaBeli"
+                width={120}
+                render={(price: number, record: BaseRecord) => (
+                  <Text
+                    type="danger"
+                    style={{
+                      color: record.sudah_dibooking ? '#999' : '#f5222d',
+                    }}
+                  >
+                    Rp {price?.toLocaleString('id-ID')}
+                  </Text>
+                )}
+              />
+
+              {/* Harga Jual */}
+              <Table.Column
+                title="Harga Jual"
+                dataIndex="harga"
+                width={120}
+                render={(price: number, record: BaseRecord) => (
+                  <Text
+                    type="success"
+                    style={{
+                      color: record.sudah_dibooking ? '#999' : '#52c41a',
+                    }}
+                  >
+                    Rp {price?.toLocaleString('id-ID')}
+                  </Text>
+                )}
+              />
+
+              {/* Margin */}
+              <Table.Column
+                title="Margin"
+                width={100}
+                render={(_, record: any) => {
+                  if (!record.hargaBeli || !record.harga) return '-'
+                  const margin = (((record.harga - record.hargaBeli) / record.hargaBeli) * 100).toFixed(2)
+                  return <Tag color={parseFloat(margin) > 20 ? 'green' : 'orange'}>{margin}%</Tag>
+                }}
+              />
+
+              {/* Status */}
+              <Table.Column
+                title="Status"
+                dataIndex="sudah_dibooking"
+                width={120}
+                render={(sudah_dibooking: boolean) =>
+                  sudah_dibooking ? (
+                    <Tag color="red">Sudah Dibooking</Tag>
+                  ) : (
+                    <Tag color="green">Tersedia</Tag>
+                  )
+                }
+              />
+
+              {/* Aksi */}
+              <Table.Column
+                title="Aksi"
+                width={120}
+                fixed="right"
+                render={(_, record: BaseRecord) => (
+                  <Space size="small">
+                    <ShowButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Detail"
+                    />
+                    <EditButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Edit kambing"
+                    />
+                    <DeleteButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Hapus kambing"
+                    />
+                  </Space>
+                )}
+              />
+            </Table>
           ) : (
             // Tampilan Card untuk Customer
             <Row gutter={[16, 16]}>

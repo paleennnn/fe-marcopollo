@@ -22,6 +22,7 @@ import {
   ShoppingCartOutlined,
   UsergroupAddOutlined,
   DockerOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 
 export const MobileBottomNavbar: React.FC = () => {
@@ -91,6 +92,21 @@ export const MobileBottomNavbar: React.FC = () => {
             className="mr-2"
           />
           <span style={{ color: "rgba(44, 89, 90, 1)" }}>Pengembalian</span>
+        </Link>
+      </CanAccess>
+
+      {/* Laporan Keuangan */}
+      <CanAccess resource="financial-reports" action="list">
+        <Link
+          to="/financial-reports"
+          className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-md"
+          onClick={handleMenuItemClick}
+        >
+          <ReadOutlined
+            style={{ fontSize: "1.2em", color: "rgba(44, 89, 90, 1)" }}
+            className="mr-2"
+          />
+          <span style={{ color: "rgba(44, 89, 90, 1)" }}>Laporan Keuangan</span>
         </Link>
       </CanAccess>
 

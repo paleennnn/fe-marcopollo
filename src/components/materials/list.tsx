@@ -121,108 +121,6 @@ export const MaterialList = () => {
   console.log("User Role:", getUserRole());
   console.log("Is Admin:", isAdmin);
 
-  // Kolom untuk tabel admin
-  const adminColumns = [
-    {
-      title: "Gambar",
-      dataIndex: "image",
-      key: "image",
-      width: 100,
-      render: (image: string, record: BaseRecord) =>
-        image ? (
-          <Image
-            src={`${apiUrl}/${image}`}
-            alt={record.namaMaterial}
-            width={60}
-            height={60}
-            style={{ objectFit: "cover", borderRadius: 4 }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              backgroundColor: "#f0f0f0",
-              borderRadius: 4,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              img
-            </Text>
-          </div>
-        ),
-    },
-    {
-      title: "Nama Material",
-      dataIndex: "namaMaterial",
-      key: "namaMaterial",
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Harga Beli",
-      dataIndex: "hargaBeli",
-      key: "hargaBeli",
-      render: (price: number) => (
-        <Text type="danger">Rp {price?.toLocaleString("id-ID")}</Text>
-      ),
-    },
-    {
-      title: "Harga Jual",
-      dataIndex: "hargaSatuan",
-      key: "hargaSatuan",
-      render: (price: number) => (
-        <Text type="success">Rp {price?.toLocaleString("id-ID")}</Text>
-      ),
-    },
-    {
-      title: "Margin",
-      dataIndex: "hargaSatuan",
-      key: "margin",
-      render: (hargaJual: number, record: any) => {
-        if (!record.hargaBeli || !hargaJual) return "-";
-        const margin = (
-          ((hargaJual - record.hargaBeli) / record.hargaBeli) *
-          100
-        ).toFixed(2);
-        return (
-          <Tag color={parseFloat(margin) > 30 ? "green" : "orange"}>
-            {margin}%
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "Aksi",
-      key: "actions",
-      render: (_: any, record: BaseRecord) => (
-        <Space>
-          <ShowButton
-            hideText
-            size="small"
-            recordItemId={record.id}
-            icon={<EyeOutlined />}
-            title="Detail"
-          />
-          <EditButton
-            hideText
-            size="small"
-            recordItemId={record.id}
-            title="Edit"
-          />
-          <DeleteButton
-            hideText
-            size="small"
-            recordItemId={record.id}
-            title="Hapus"
-          />
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <CanAccess
       resource="materials"
@@ -245,8 +143,9 @@ export const MaterialList = () => {
             // Tampilan Tabel untuk Admin
             <Table
               dataSource={materials}
-              columns={adminColumns}
               rowKey="id"
+              bordered
+              scroll={{ x: 800 }}
               pagination={{
                 ...tableProps?.pagination,
                 showSizeChanger: true,
@@ -254,7 +153,117 @@ export const MaterialList = () => {
                 showTotal: (total, range) =>
                   `${range[0]}-${range[1]} dari ${total} material`,
               }}
-            />
+            >
+              {/* Gambar */}
+              <Table.Column
+                title="Gambar"
+                dataIndex="image"
+                width={80}
+                render={(image: string, record: BaseRecord) =>
+                  image ? (
+                    <Image
+                      src={`${apiUrl}/${image}`}
+                      alt={record.namaMaterial}
+                      width={50}
+                      height={50}
+                      style={{ objectFit: "cover", borderRadius: 4 }}
+                      preview={false}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 50,
+                        height: 50,
+                        backgroundColor: "#f0f0f0",
+                        borderRadius: 4,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text type="secondary" style={{ fontSize: 10 }}>
+                        img
+                      </Text>
+                    </div>
+                  )
+                }
+              />
+
+              {/* Nama Material */}
+              <Table.Column
+                title="Nama Material"
+                dataIndex="namaMaterial"
+                render={(text: string) => <Text strong>{text}</Text>}
+              />
+
+              {/* Harga Beli */}
+              <Table.Column
+                title="Harga Beli"
+                dataIndex="hargaBeli"
+                width={120}
+                render={(price: number) => (
+                  <Text type="danger">Rp {price?.toLocaleString("id-ID")}</Text>
+                )}
+              />
+
+              {/* Harga Jual */}
+              <Table.Column
+                title="Harga Jual"
+                dataIndex="hargaSatuan"
+                width={120}
+                render={(price: number) => (
+                  <Text type="success">Rp {price?.toLocaleString("id-ID")}</Text>
+                )}
+              />
+
+              {/* Margin */}
+              <Table.Column
+                title="Margin"
+                width={100}
+                render={(_, record: any) => {
+                  if (!record.hargaBeli || !record.hargaSatuan) return "-";
+                  const margin = (
+                    ((record.hargaSatuan - record.hargaBeli) /
+                      record.hargaBeli) *
+                    100
+                  ).toFixed(2);
+                  return (
+                    <Tag color={parseFloat(margin) > 30 ? "green" : "orange"}>
+                      {margin}%
+                    </Tag>
+                  );
+                }}
+              />
+
+              {/* Aksi */}
+              <Table.Column
+                title="Aksi"
+                width={120}
+                fixed="right"
+                render={(_, record: BaseRecord) => (
+                  <Space size="small">
+                    <ShowButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Detail"
+                    />
+                    <EditButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Edit"
+                    />
+                    <DeleteButton
+                      hideText
+                      size="small"
+                      recordItemId={record.id}
+                      title="Hapus"
+                    />
+                  </Space>
+                )}
+              />
+            </Table>
           ) : (
             // Tampilan Card untuk Customer
             <Row gutter={[16, 16]}>
