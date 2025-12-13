@@ -1,12 +1,13 @@
 "use client";
 
 import InstallButton from "@components/installButton";
-import { useList, Link } from "@refinedev/core";
+import { useList, Link, useApiUrl } from "@refinedev/core";
 import { Card, Button, FloatButton } from "antd";
 import { WhatsAppOutlined } from "@ant-design/icons";
 import Cookies from "js-cookie";
 
 export default function LandingPage() {
+  const apiUrl = useApiUrl();
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -18,6 +19,15 @@ export default function LandingPage() {
 
   // Atau bisa juga cek cookie auth
   const authCookie = typeof window !== "undefined" ? Cookies.get("auth") : null;
+
+  // Helper function untuk get image URL
+  const getImageUrl = (image: string | null) => {
+    if (!image) return "/images/placeholder.png";
+    // Jika sudah full URL (http/https), gunakan langsung
+    if (image.startsWith("http")) return image;
+    // Jika relative path, prepend apiUrl
+    return `${apiUrl}/${image}`;
+  };
 
   // Ambil data Kambing dari resource refine
   const { data: kambingsData, isLoading: kambingsLoading } = useList({
@@ -135,15 +145,18 @@ export default function LandingPage() {
                 hoverable
                 cover={
                   <img
-                    alt={item.nama_kambing}
-                    src={item.image || "/images/placeholder.png"}
+                    alt={item.namaKambing}
+                    src={getImageUrl(item.image)}
                     className="h-40 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/placeholder.png";
+                    }}
                   />
                 }
                 onClick={() => handleCardClick(item.id, "kambing")}
               >
                 <Card.Meta
-                  title={item.nama_kambing}
+                  title={item.namaKambing}
                   description={`Rp ${Number(item.harga || 0).toLocaleString(
                     "id-ID"
                   )}`}
@@ -169,17 +182,20 @@ export default function LandingPage() {
                 hoverable
                 cover={
                   <img
-                    alt={item.nama_material}
-                    src={item.image || "/images/placeholder.png"}
+                    alt={item.namaMaterial}
+                    src={getImageUrl(item.image)}
                     className="h-40 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/placeholder.png";
+                    }}
                   />
                 }
                 onClick={() => handleCardClick(item.id, "material")}
               >
                 <Card.Meta
-                  title={item.nama_material}
+                  title={item.namaMaterial}
                   description={`Rp ${Number(
-                    item.harga_satuan || 0
+                    item.hargaSatuan || 0
                   ).toLocaleString("id-ID")}`}
                 />
               </Card>
