@@ -103,6 +103,7 @@ export const KambingList = () => {
   const kambings = tableProps?.dataSource || []
 
   const getUserRole = () => {
+    if (typeof window === "undefined") return null
     const userStr = localStorage.getItem('user')
     if (!userStr) return null
 

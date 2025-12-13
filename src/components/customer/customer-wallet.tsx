@@ -22,7 +22,7 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { useApiUrl } from "@refinedev/core";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "antd/es/typography";
 import dayjs from "dayjs";
 
@@ -67,10 +67,12 @@ export const CustomerWallet = () => {
     }
   };
 
-  const userInfo = getUserInfo();
+  // Memoize userInfo untuk menghindari object baru setiap render
+  const userInfo = useMemo(() => getUserInfo(), []);
   const isCustomer = userInfo?.role === "customer";
 
-  const fetchCustomerStats = async () => {
+  // Wrap fetchCustomerStats dengan useCallback untuk menghindari infinite loops
+  const fetchCustomerStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -83,7 +85,16 @@ export const CustomerWallet = () => {
         return;
       }
 
+      if (!apiUrl) {
+        throw new Error("API URL tidak tersedia");
+      }
+
+      if (!userInfo?.id) {
+        throw new Error("User ID tidak tersedia");
+      }
+
       const token = localStorage.getItem("token");
+      
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
@@ -101,22 +112,73 @@ export const CustomerWallet = () => {
 
       let success = false;
       let apiData: any = null;
+      let totalRefund = 0;
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            credentials: "include",
-            headers,
-          });
+      // 🚀 Parallel fetch dengan timeout protection
+      const fetchWithTimeout = (url: string, timeout = 10000) => {
+        return Promise.race([
+          fetch(url, { credentials: "include", headers }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), timeout)
+          ),
+        ]);
+      };
 
-          if (response.ok) {
-            apiData = await response.json();
-            success = true;
-            break;
+      const [ordersResult, refundsResult] = await Promise.allSettled([
+        // Try all endpoints for orders dengan timeout
+        (async () => {
+          let lastError = new Error("No endpoints available");
+          for (const endpoint of endpoints) {
+            try {
+              const response = await fetchWithTimeout(endpoint, 8000);
+              if ((response as Response).ok) {
+                return await (response as Response).json();
+              }
+            } catch (endpointError) {
+              lastError = endpointError as Error;
+              continue;
+            }
           }
-        } catch (endpointError) {
-          continue;
-        }
+          throw lastError;
+        })(),
+        // Fetch refunds in parallel dengan timeout
+        (async () => {
+          try {
+            const refundUrl = `${apiUrl}/customer/refunds`;
+            const response = await fetchWithTimeout(refundUrl, 8000);
+            if ((response as Response).ok) {
+              return await (response as Response).json();
+            }
+          } catch (error) {
+            return null;
+          }
+          return null;
+        })(),
+      ]);
+
+      // Process orders result
+      if (ordersResult.status === "fulfilled" && ordersResult.value) {
+        apiData = ordersResult.value;
+        success = true;
+      } else if (ordersResult.status === "rejected") {
+        throw ordersResult.reason;
+      }
+
+      // Process refunds result  
+      if (refundsResult.status === "fulfilled" && refundsResult.value) {
+        const refundData = refundsResult.value;
+        const refunds = Array.isArray(refundData)
+          ? refundData
+          : refundData?.data || [];
+
+        totalRefund = refunds
+          .filter((refund: any) => refund.status === "disetujui")
+          .reduce((sum: number, refund: any) => {
+            const refundAmount = Number(
+              refund.totalHarga || refund.total_harga || 0
+            );
+            return sum + (isNaN(refundAmount) ? 0 : Math.max(refundAmount, 0));
+          }, 0);
       }
 
       if (success && apiData) {
@@ -182,32 +244,6 @@ export const CustomerWallet = () => {
           0
         );
 
-        let totalRefund = 0;
-        try {
-          const refundResponse = await fetch(`${apiUrl}/customer/refunds`, {
-            credentials: "include",
-            headers,
-          });
-
-          if (refundResponse.ok) {
-            const refundData = await refundResponse.json();
-            const refunds = Array.isArray(refundData)
-              ? refundData
-              : refundData.data || [];
-
-            totalRefund = refunds
-              .filter((refund: any) => refund.status === "disetujui")
-              .reduce((sum: number, refund: any) => {
-                const refundAmount = Number(
-                  refund.totalHarga || refund.total_harga || 0
-                );
-                return sum + (isNaN(refundAmount) ? 0 : Math.max(refundAmount, 0));
-              }, 0);
-          }
-        } catch (refundError) {
-          totalRefund = 0;
-        }
-
         const processedOrders = completedOrders
           .slice(0, 10)
           .map((order: any) => ({
@@ -243,21 +279,24 @@ export const CustomerWallet = () => {
         setStats(mockCustomerStats);
         setUsingMockData(true);
         setError("Tidak dapat terhubung ke server. Menampilkan data contoh.");
-        message.info("Menggunakan data contoh untuk demo");
+        message.warning("Koneksi server bermasalah - menampilkan data contoh");
       }
     } catch (error) {
       setStats(mockCustomerStats);
       setUsingMockData(true);
       setError("Terjadi kesalahan sistem. Menampilkan data contoh.");
-      message.info("Menggunakan data contoh untuk demo");
+      message.error("Terjadi kesalahan: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, isCustomer, userInfo?.id]);
 
   useEffect(() => {
-    fetchCustomerStats();
-  }, [apiUrl, isCustomer]);
+    // Jalan ketika apiUrl berubah atau role berubah
+    if (apiUrl && isCustomer !== undefined) {
+      fetchCustomerStats();
+    }
+  }, [apiUrl, isCustomer, fetchCustomerStats]);
 
   if (!isCustomer && !loading) {
     return (
@@ -425,29 +464,6 @@ const CustomerStatsContent = ({
             >
               Total pengeluaran setelah dikurangi refund
             </Text>
-            {totalRefund > 0 && (
-              <div
-                style={{
-                  marginTop: 8,
-                  padding: "8px",
-                  backgroundColor: "#fff7e6",
-                  borderRadius: "4px",
-                }}
-              >
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 11, display: "block" }}
-                >
-                  Refund: Rp {totalRefund.toLocaleString("id-ID")}
-                </Text>
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 11, display: "block" }}
-                >
-                  Gross: Rp {stats.totalBelanja.toLocaleString("id-ID")}
-                </Text>
-              </div>
-            )}
           </Card>
         </Col>
 
@@ -474,23 +490,22 @@ const CustomerStatsContent = ({
         <Col xs={24} sm={12} lg={8}>
           <Card hoverable styles={{ body: { padding: "20px" } }}>
             <Statistic
-              title="Rata-rata per Pesanan"
-              value={averageOrder}
+              title="Total Pengembalian Dana"
+              value={totalRefund}
               prefix={<DollarOutlined />}
-              suffix="Rp"
               valueStyle={{
-                color: averageOrder > 0 ? "#faad14" : "#d9d9d9",
+                color: totalRefund > 0 ? "#52c41a" : "#d9d9d9",
                 fontSize: "24px",
               }}
               formatter={(value: any) =>
-                `${(value as number).toLocaleString("id-ID")}`
+                `Rp ${(value as number).toLocaleString("id-ID")}`
               }
             />
             <Text
               type="secondary"
               style={{ fontSize: 12, display: "block", marginTop: 8 }}
             >
-              Rata-rata nilai setiap pesanan
+              Total dana yang dikembalikan dari refund
             </Text>
           </Card>
         </Col>

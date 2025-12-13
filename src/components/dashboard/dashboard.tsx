@@ -241,14 +241,11 @@ export const Dashboard = () => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log("✅ Finance data fetched:", data);
           setFinanceData(data.data || data);
         } else {
-          console.warn("⚠️ Failed to fetch finance data:", response.status);
           setFinanceData(null);
         }
       } catch (err) {
-        console.error("❌ Error fetching finance data:", err);
         setFinanceData(null);
       } finally {
         setFinanceLoading(false);

@@ -49,16 +49,16 @@ export const KambingEdit = () => {
   useEffect(() => {
     if (data && formProps.form) {
       formProps.form.setFieldsValue({
-        nama_kambing: data.nama_kambing,
-        harga_beli: data.harga_beli,
+        nama_kambing: data.namaKambing,
+        harga_beli: data.hargaBeli,
         umur: data.umur,
         harga: data.harga,
         keterangan: data.keterangan,
         catatan: data.catatan,
-        tanggal_ditambahkan: data.tanggal_ditambahkan
-          ? dayjs(data.tanggal_ditambahkan)
+        tanggal_ditambahkan: data.tanggalDitambahkan
+          ? dayjs(data.tanggalDitambahkan)
           : null,
-        kandang_id: data.kandang_id,
+        kandang_id: data.kandangId,
       });
 
       if (data.image) {
