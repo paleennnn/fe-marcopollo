@@ -70,30 +70,78 @@ export const FinancialReportsList = () => {
     },
   });
 
+  // Fetch all materials
+  const { data: materialsData } = useList({
+    resource: "materials",
+    pagination: {
+      pageSize: 10000,
+      mode: "server",
+    },
+  });
+
+  // Fetch all kambings
+  const { data: kambingsData } = useList({
+    resource: "kambings",
+    pagination: {
+      pageSize: 10000,
+      mode: "server",
+    },
+  });
+
   const dataSource = tableProps.dataSource as any;
   const rawOrders =
     dataSource?.data?.data || dataSource?.data || dataSource || [];
 
   const leleList: any[] = Array.isArray(leleData?.data) ? leleData.data : [];
+  const materialsList: any[] = Array.isArray(materialsData?.data) ? materialsData.data : [];
+  const kambingsList: any[] = Array.isArray(kambingsData?.data) ? kambingsData.data : [];
 
-  const leleOrders = leleList.map((item: any) => ({
-    idOrder: `PANEN-${item.idPanen}`,
-    nomorOrder: `PANEN-${item.nomorKolam}-${dayjs(item.tanggalPanen).format(
-      "DMY"
-    )}`,
-    tanggalOrder: item.tanggalPanen,
-    totalHarga: item.hargaJualTotal,
-    user: { fullname: "Internal (Panen)" },
-    orderDetails: [
-      {
-        namaProduk: `Panen Lele Kolam ${item.nomorKolam} (${item.totalBeratKg}kg)`,
-        tipeProduk: "lele",
-        jumlah: 1,
-        hargaSatuan: item.hargaJualTotal,
-      },
-    ],
-    status: "selesai",
-  }));
+  // Helper function to get modal per order
+  const getOrderModal = (order: any) => {
+    if (order.modal !== undefined) return order.modal; // For lele
+
+    // Calculate modal from orderDetails
+    return order.orderDetails?.reduce((sum: number, detail: any) => {
+      let hargaBeli = 0;
+
+      if (detail.tipeProduk === "material") {
+        const material = materialsList.find(
+          (m: any) => m.id === detail.idMaterial || m.id_material === detail.idMaterial
+        );
+        hargaBeli = Number(material?.hargaBeli || material?.harga_beli || 0);
+      } else if (detail.tipeProduk === "kambing") {
+        const kambing = kambingsList.find(
+          (k: any) => k.id === detail.idKambing || k.id_kambing === detail.idKambing
+        );
+        hargaBeli = Number(kambing?.hargaBeli || kambing?.harga_beli || 0);
+      }
+
+      return sum + hargaBeli * (detail.jumlah || 1);
+    }, 0) || 0;
+  };
+
+  const leleOrders = leleList.map((item: any) => {
+    const modal = (Number(item.hargaBeliTotal || item.harga_beli_total || 0) + Number(item.potongPakan || item.potong_pakan || 0));
+    const omset = Number(item.hargaJualTotal || item.harga_jual_total || 0);
+    return {
+      idOrder: `PANEN-${item.idPanen || item.id_panen}`,
+      nomorOrder: `PANEN-${item.nomorKolam || item.nomor_kolam}-${dayjs(item.tanggalPanen || item.tanggal_panen).format("DMY")}`,
+      tanggalOrder: item.tanggalPanen || item.tanggal_panen,
+      totalHarga: omset,
+      modal: modal,
+      user: { fullname: "Internal (Panen)" },
+      orderDetails: [
+        {
+          namaProduk: `Panen Lele Kolam ${item.nomorKolam || item.nomor_kolam} (${item.totalBeratKg || item.total_berat_kg}kg)`,
+          tipeProduk: "lele",
+          jumlah: 1,
+          hargaSatuan: omset,
+          hargaBeli: modal,
+        },
+      ],
+      status: "selesai",
+    };
+  });
 
   const allOrders = [...rawOrders, ...leleOrders].sort(
     (a, b) => dayjs(b.tanggalOrder).valueOf() - dayjs(a.tanggalOrder).valueOf()
@@ -131,11 +179,18 @@ export const FinancialReportsList = () => {
       0
     );
 
+    const totalModal = _orders.reduce((sum: number, order: any) => {
+      return sum + getOrderModal(order);
+    }, 0);
+
+    const totalProfit = totalIncome - totalModal;
     const totalTransactions = _orders.length;
 
     return {
       orders: _orders,
       totalIncome,
+      totalModal,
+      totalProfit,
       totalTransactions,
     };
   }, [allOrders, activeTab, selectedMonth]);
@@ -159,11 +214,12 @@ export const FinancialReportsList = () => {
 
         worksheet.columns = [
           { header: "No", key: "no", width: 5 },
-          { header: "Nomor Order", key: "nomorOrder", width: 20 },
           { header: "Tanggal", key: "tanggal", width: 20 },
           { header: "Customer", key: "customer", width: 30 },
           { header: "Items", key: "items", width: 40 },
-          { header: "Total", key: "total", width: 20 },
+          { header: "Modal", key: "modal", width: 20 },
+          { header: "Omset", key: "omset", width: 20 },
+          { header: "Profit", key: "profit", width: 20 },
         ];
 
         dataToExport.forEach((order: any, index: number) => {
@@ -172,13 +228,17 @@ export const FinancialReportsList = () => {
               ?.map((item: any) => `${item.namaProduk} (x${item.jumlah})`)
               .join("\n") || "-";
 
+          const orderModal = getOrderModal(order);
+          const profit = parseFloat(order.totalHarga || 0) - orderModal;
+
           const row = worksheet.addRow({
             no: index + 1,
-            nomorOrder: order.nomorOrder,
             tanggal: dayjs(order.tanggalOrder).format("DD/MM/YYYY HH:mm"),
             customer: order.user?.fullname || "-",
             items: items,
-            total: parseFloat(order.totalHarga || 0),
+            modal: orderModal,
+            omset: parseFloat(order.totalHarga || 0),
+            profit: profit,
           });
 
           const itemCount = order.orderDetails?.length || 1;
@@ -191,14 +251,30 @@ export const FinancialReportsList = () => {
           };
         });
 
-        worksheet.getColumn("total").numFmt = '"Rp" #,##0.00';
+        // Add total row
+        const totalRow = worksheet.addRow({
+          no: "",
+          tanggal: "",
+          customer: "",
+          items: "",
+          modal: processData.totalModal,
+          omset: processData.totalIncome,
+          profit: processData.totalProfit,
+        });
+        totalRow.font = { bold: true };
+        totalRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB3B" } };
+
+        worksheet.getColumn("modal").numFmt = '"Rp" #,##0';
+        worksheet.getColumn("omset").numFmt = '"Rp" #,##0';
+        worksheet.getColumn("profit").numFmt = '"Rp" #,##0';
 
         worksheet.getColumn("items").width = 40;
         worksheet.getColumn("no").alignment = { vertical: "top" };
-        worksheet.getColumn("nomorOrder").alignment = { vertical: "top" };
         worksheet.getColumn("tanggal").alignment = { vertical: "top" };
         worksheet.getColumn("customer").alignment = { vertical: "top" };
-        worksheet.getColumn("total").alignment = { vertical: "top" };
+        worksheet.getColumn("modal").alignment = { vertical: "top" };
+        worksheet.getColumn("omset").alignment = { vertical: "top" };
+        worksheet.getColumn("profit").alignment = { vertical: "top" };
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
@@ -211,13 +287,35 @@ export const FinancialReportsList = () => {
       } else {
         const doc = new jsPDF();
 
+        // Header - Marcopollo Group
+        doc.setFontSize(14);
+        doc.text("Marcopollo Group", 105, 12, { align: "center" });
+        
+        // Title - Laporan Keuangan
+        doc.setFontSize(12);
+        doc.text("Laporan Keuangan", 105, 19, { align: "center" });
+
+        // Summary info with smaller font
+        doc.setFontSize(9);
+        let summaryY = 26;
+        doc.text(`Kategori:${activeTab === "all" ? "Semua" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`, 14, summaryY);
+        
+        if (selectedMonth) {
+          summaryY += 5;
+          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, summaryY);
+        }
+        
+        summaryY += 5;
+        doc.text(`Total Transaksi: ${processData.totalTransactions}`, 14, summaryY);
+
         const tableColumn = [
           "No",
-          "Nomor Order",
           "Tanggal",
           "Customer",
           "Items",
-          "Total",
+          "Modal (Rp)",
+          "Omset (Rp)",
+          "Profit (Rp)",
         ];
 
         const tableRows = dataToExport.map((order: any, index: number) => {
@@ -226,38 +324,51 @@ export const FinancialReportsList = () => {
               ?.map((item: any) => `${item.namaProduk} (x${item.jumlah})`)
               .join("\n") || "-";
 
+          const orderModal = getOrderModal(order);
+          const profit = parseFloat(order.totalHarga || 0) - orderModal;
+
           return [
             index + 1,
-            order.nomorOrder,
             dayjs(order.tanggalOrder).format("DD/MM/YYYY HH:mm"),
             order.user?.fullname || "-",
             items,
-            `Rp ${parseFloat(order.totalHarga || 0).toLocaleString("id-ID")}`,
+            orderModal.toLocaleString("id-ID"),
+            parseFloat(order.totalHarga || 0).toLocaleString("id-ID"),
+            profit.toLocaleString("id-ID"),
           ];
         });
 
-        doc.text(title, 14, 15);
-        if (selectedMonth) {
-          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, 22);
-        }
-        doc.text(
-          `Total Omset: Rp ${processData.totalIncome.toLocaleString("id-ID")}`,
-          14,
-          selectedMonth ? 29 : 22
-        );
-        doc.text(
-          `Total Transaksi: ${processData.totalTransactions}`,
-          14,
-          selectedMonth ? 36 : 29
-        );
+        // Add total row at the end
+        tableRows.push([
+          "",
+          "TOTAL",
+          "",
+          "",
+          processData.totalModal.toLocaleString("id-ID"),
+          processData.totalIncome.toLocaleString("id-ID"),
+          processData.totalProfit.toLocaleString("id-ID"),
+        ]);
 
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: selectedMonth ? 42 : 35,
+          startY: summaryY + 8,
           styles: { fontSize: 8 },
+          headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
           columnStyles: {
             4: { cellWidth: 50 },
+          },
+          didParseCell: (data) => {
+            // Style the last row (TOTAL) with blue background
+            if (data.row.index === data.table.body.length - 1) {
+              data.cell.styles.fillColor = [41, 128, 185];
+              data.cell.styles.textColor = [255, 255, 255];
+              data.cell.styles.fontStyle = 'bold';
+            }
           },
         });
 
@@ -310,7 +421,21 @@ export const FinancialReportsList = () => {
       }
     >
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12}>
+        <Col xs={24} sm={12} lg={8}>
+          <Card>
+            <Statistic
+              title="Total Modal"
+              value={processData.totalModal}
+              prefix={<DollarCircleOutlined />}
+              precision={0}
+              formatter={(value) =>
+                `Rp ${Number(value).toLocaleString("id-ID")}`
+              }
+              valueStyle={{ color: "#ff4d4f" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
           <Card>
             <Statistic
               title="Total Omset"
@@ -324,12 +449,17 @@ export const FinancialReportsList = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12}>
+        <Col xs={24} sm={12} lg={8}>
           <Card>
             <Statistic
-              title="Total Transaksi Selesai"
-              value={processData.totalTransactions}
-              prefix={<ShoppingOutlined />}
+              title="Total Profit"
+              value={processData.totalProfit}
+              prefix={<DollarCircleOutlined />}
+              precision={0}
+              formatter={(value) =>
+                `Rp ${Number(value).toLocaleString("id-ID")}`
+              }
+              valueStyle={{ color: processData.totalProfit >= 0 ? "#1890ff" : "#ff4d4f" }}
             />
           </Card>
         </Col>
@@ -349,11 +479,6 @@ export const FinancialReportsList = () => {
             showTotal: (total: number) => `Total ${total} transaksi`,
           }}
         >
-          <Table.Column
-            dataIndex="nomorOrder"
-            title="Nomor Order"
-            render={(value) => <Text strong>{value}</Text>}
-          />
           <Table.Column
             dataIndex="tanggalOrder"
             title="Tanggal"
@@ -389,11 +514,35 @@ export const FinancialReportsList = () => {
           />
           <Table.Column
             dataIndex="totalHarga"
-            title="Total"
+            title="Modal"
+            align="right"
+            render={(_, record: any) => {
+              const orderModal = getOrderModal(record);
+              return (
+                <Text>Rp {Number(orderModal).toLocaleString("id-ID")}</Text>
+              );
+            }}
+          />
+          <Table.Column
+            dataIndex="totalHarga"
+            title="Omset"
             align="right"
             render={(value) => (
-              <Text strong>Rp {parseFloat(value).toLocaleString("id-ID")}</Text>
+              <Text strong>Rp {Number(value || 0).toLocaleString("id-ID")}</Text>
             )}
+          />
+          <Table.Column
+            title="Profit"
+            align="right"
+            render={(_, record: any) => {
+              const orderModal = getOrderModal(record);
+              const profit = Number(record.totalHarga || 0) - Number(orderModal);
+              return (
+                <Text strong style={{ color: profit >= 0 ? "#3f8600" : "#ff4d4f" }}>
+                  Rp {Number(profit).toLocaleString("id-ID")}
+                </Text>
+              );
+            }}
           />
         </Table>
       </Card>
