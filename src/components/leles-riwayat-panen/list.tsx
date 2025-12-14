@@ -129,20 +129,19 @@ export const RiwayatPanenList = () => {
           { header: "Bibit Awal", key: "bibit", width: 15 },
           { header: "Berat Total", key: "berat", width: 15 },
           { header: "Modal", key: "modal", width: 20 },
-          { header: "Potong Pakan", key: "pakan", width: 20 },
           { header: "Omset", key: "omset", width: 20 },
           { header: "Profit", key: "profit", width: 20 },
           { header: "Tanggal Panen", key: "tanggal", width: 20 },
         ];
 
         allData.forEach((item: any, index: number) => {
+          const modal = Number(item.hargaBeliTotal || 0) + Number(item.potongPakan || 0);
           worksheet.addRow({
             no: index + 1,
             kolam: `Kolam ${item.nomorKolam}`,
             bibit: Number(item.jumlahBibit || 0),
             berat: `${Number(item.totalBeratKg || 0)} kg`,
-            modal: Number(item.hargaBeliTotal || 0),
-            pakan: Number(item.potongPakan || 0),
+            modal: modal,
             omset: Number(item.hargaJualTotal || 0),
             profit: calculateProfit(item),
             tanggal: dayjs(item.tanggalPanen).format("DD/MM/YYYY"),
@@ -150,7 +149,7 @@ export const RiwayatPanenList = () => {
         });
 
         // Format currency columns
-        const currencyCols = ["modal", "pakan", "omset", "profit"];
+        const currencyCols = ["modal", "omset", "profit"];
         currencyCols.forEach((colKey) => {
           worksheet.getColumn(colKey).numFmt = '"Rp" #,##0';
         });
@@ -171,23 +170,24 @@ export const RiwayatPanenList = () => {
           "Bibit",
           "Berat",
           "Modal",
-          "Pakan",
           "Omset",
           "Profit",
           "Tanggal",
         ];
 
-        const tableRows = allData.map((item: any, index: number) => [
-          index + 1,
-          `Kolam ${item.nomorKolam}`,
-          Number(item.jumlahBibit || 0).toLocaleString("id-ID"),
-          `${Number(item.totalBeratKg || 0)} kg`,
-          `Rp ${Number(item.hargaBeliTotal || 0).toLocaleString("id-ID")}`,
-          `Rp ${Number(item.potongPakan || 0).toLocaleString("id-ID")}`,
-          `Rp ${Number(item.hargaJualTotal || 0).toLocaleString("id-ID")}`,
-          `Rp ${calculateProfit(item).toLocaleString("id-ID")}`,
-          dayjs(item.tanggalPanen).format("DD/MM/YYYY"),
-        ]);
+        const tableRows = allData.map((item: any, index: number) => {
+          const modal = Number(item.hargaBeliTotal || 0) + Number(item.potongPakan || 0);
+          return [
+            index + 1,
+            `Kolam ${item.nomorKolam}`,
+            Number(item.jumlahBibit || 0).toLocaleString("id-ID"),
+            `${Number(item.totalBeratKg || 0)} kg`,
+            `Rp ${modal.toLocaleString("id-ID")}`,
+            `Rp ${Number(item.hargaJualTotal || 0).toLocaleString("id-ID")}`,
+            `Rp ${calculateProfit(item).toLocaleString("id-ID")}`,
+            dayjs(item.tanggalPanen).format("DD/MM/YYYY"),
+          ];
+        });
 
         doc.text(title, 14, 15);
         if (selectedMonth) {
@@ -316,21 +316,14 @@ export const RiwayatPanenList = () => {
               dataIndex: "hargaBeliTotal",
               title: "Modal",
               align: "right",
-              render: (value) => (
-                <Text type="secondary">
-                  Rp {Number(value || 0).toLocaleString("id-ID")}
-                </Text>
-              ),
-            },
-            {
-              dataIndex: "potongPakan",
-              title: "Potong Pakan",
-              align: "right",
-              render: (value) => (
-                <Text type="warning">
-                  Rp {Number(value || 0).toLocaleString("id-ID")}
-                </Text>
-              ),
+              render: (_, record) => {
+                const modal = Number(record.hargaBeliTotal || 0) + Number(record.potongPakan || 0);
+                return (
+                  <Text type="secondary">
+                    Rp {modal.toLocaleString("id-ID")}
+                  </Text>
+                );
+              },
             },
             {
               dataIndex: "hargaJualTotal",

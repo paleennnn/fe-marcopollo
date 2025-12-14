@@ -284,7 +284,7 @@ export const BarChartRevenue = () => {
       title={
         <Space>
           <BarChartOutlined />
-          <span>💰 Revenue Tahunan</span>
+          <span>Revenue Material & Kambing</span>
         </Space>
       }
       extra={

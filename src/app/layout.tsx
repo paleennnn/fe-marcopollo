@@ -38,6 +38,7 @@ import {
   HistoryOutlined,
   TransactionOutlined,
   InboxOutlined,
+  TruckOutlined,
 } from "@ant-design/icons";
 import InstallButton from "@components/installButton";
 import { ColorModeContextProvider } from "@contexts/color-mode";
@@ -89,17 +90,6 @@ export default function RootLayout({
                           meta: {
                             label: "Home",
                             hide: true,
-                          },
-                        },
-                        {
-                          name: "profile",
-                          list: "/profile",
-                          meta: {
-                            label: "My Profile",
-                            hide: false,
-                            icon: (
-                              <UserOutlined style={{ fontSize: "1.2em" }} />
-                            ),
                           },
                         },
                         {
@@ -200,7 +190,7 @@ export default function RootLayout({
                           meta: {
                             label: "Manajemen Transaksi",
                             icon: (
-                              <TransactionOutlined
+                              <TruckOutlined
                                 style={{ fontSize: "1.2em" }}
                               />
                             ),
@@ -238,7 +228,7 @@ export default function RootLayout({
                           meta: {
                             label: "Laporan Keuangan",
                             icon: (
-                              <HistoryOutlined style={{ fontSize: "1.2em" }} />
+                              <ReadOutlined style={{ fontSize: "1.2em" }} />
                             ),
                           },
                         },

@@ -17,6 +17,7 @@ import {
   ShoppingCartOutlined,
   ArrowRightOutlined,
   ThunderboltFilled,
+  DockerOutlined,
 } from "@ant-design/icons";
 import { FinanceComparison } from "@components/finance/finance-comparison";
 import { CustomerWallet } from "@components/customer/customer-wallet";
@@ -537,7 +538,7 @@ export const Dashboard = () => {
               <Card
                 title={
                   <Space>
-                    <ShoppingCartOutlined style={{ color: "#faad14" }} />
+                    <ShoppingCartOutlined />
                     <span>Pesanan Terbaru</span>
                   </Space>
                 }
@@ -568,7 +569,7 @@ export const Dashboard = () => {
               <Card
                 title={
                   <Space>
-                    <ThunderboltFilled style={{ color: "#ff7a45" }} />
+                    <DockerOutlined />
                     <span>Kolam Akan Panen / Siap Panen</span>
                   </Space>
                 }
