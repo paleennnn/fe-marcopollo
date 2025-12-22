@@ -35,7 +35,6 @@ export default function KeranjangListPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   
-  // OCR States
   const [isValidating, setIsValidating] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [validationResult, setValidationResult] = useState<{
@@ -54,7 +53,6 @@ export default function KeranjangListPage() {
   const { mutate: uploadBukti } = useCustomMutation();
   const invalidate = useInvalidate();
 
-  // Keywords untuk validasi bukti bayar
   const REQUIRED_KEYWORDS = [
     "berhasil",
     "selesai",
@@ -67,7 +65,6 @@ export default function KeranjangListPage() {
     "pembayaran",
   ];
 
-  // Ensure dataSource is always an array
   const apiData = Array.isArray(tableProps.dataSource) ? tableProps.dataSource : [];
   const safeTableProps = {
     ...tableProps,
@@ -229,16 +226,12 @@ export default function KeranjangListPage() {
     );
   };
 
-  /**
-   * ✅ VALIDASI OCR MENGGUNAKAN TESSERACT.JS
-   */
   const validatePaymentProof = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
       setIsValidating(true);
       setOcrProgress(0);
       setValidationResult(null);
 
-      // Create image URL for preview
       const imageUrl = URL.createObjectURL(file);
 
       Tesseract.recognize(imageUrl, "ind+eng", {
@@ -252,24 +245,17 @@ export default function KeranjangListPage() {
           console.log("OCR Result:", text);
           console.log("OCR Confidence:", confidence);
 
-          // Normalize text untuk matching yang lebih baik
           const normalizedText = text.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
 
-          // Cari keyword yang ditemukan
           const foundKeywords = REQUIRED_KEYWORDS.filter((keyword) =>
             normalizedText.includes(keyword.toLowerCase())
           );
 
-          // Cek apakah ada angka (untuk validasi nominal transfer)
-          const hasNumbers = /\d{3,}/.test(normalizedText); // minimal 3 digit angka
+          const hasNumbers = /\d{3,}/.test(normalizedText);
 
           console.log("Found Keywords:", foundKeywords);
           console.log("Has Numbers:", hasNumbers);
 
-          // ✅ LOGIC VALIDASI:
-          // - Minimal 1-3 keyword harus ada
-          // - Atau ada angka (nominal transfer)
-          // - Confidence OCR minimal 30% (rendah karena bisa banyak noise)
           const minKeywords = 1;
           const isValid =
             (foundKeywords.length >= minKeywords || hasNumbers) &&
@@ -289,7 +275,7 @@ export default function KeranjangListPage() {
           }
 
           setValidationResult({
-            isValid: isValid || confidence <= 30, // Skip validation jika confidence rendah
+            isValid: isValid || confidence <= 30,
             foundKeywords,
             confidence,
             message,
@@ -298,7 +284,6 @@ export default function KeranjangListPage() {
           setIsValidating(false);
           URL.revokeObjectURL(imageUrl);
 
-          // ✅ Jika confidence rendah (<= 30%), skip validation dan biarkan admin cek manual
           if (confidence <= 30) {
             Modal.warning({
               title: "Gambar Kurang Jelas",
@@ -310,7 +295,6 @@ export default function KeranjangListPage() {
             return;
           }
 
-          // ✅ Jika tidak valid, batalkan upload
           if (!isValid) {
             Modal.error({
               title: "Bukti Pembayaran Tidak Valid",
@@ -321,14 +305,12 @@ export default function KeranjangListPage() {
             return;
           }
 
-          // ✅ Valid, lanjutkan upload
           resolve(true);
         })
         .catch((error) => {
           console.error("OCR Error:", error);
           setIsValidating(false);
 
-          // Jika OCR error, skip validation dan biarkan admin cek manual
           Modal.warning({
             title: "Gagal Memvalidasi Gambar",
             content:
@@ -340,9 +322,6 @@ export default function KeranjangListPage() {
     });
   };
 
-  /**
-   * ✅ HANDLE FILE CHANGE DENGAN VALIDASI OCR
-   */
   const handleFileChange = async ({ fileList: newFileList }: any) => {
     if (newFileList.length === 0) {
       setFileList([]);
@@ -352,7 +331,6 @@ export default function KeranjangListPage() {
 
     const file = newFileList[0].originFileObj as File;
 
-    // Validasi tipe file
     const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     if (!validTypes.includes(file.type)) {
       open?.({
@@ -363,13 +341,10 @@ export default function KeranjangListPage() {
       return;
     }
 
-    // Set file list dulu untuk preview
     setFileList(newFileList);
 
-    // Jalankan validasi OCR
     const isValid = await validatePaymentProof(file);
 
-    // Jika tidak valid, hapus file
     if (!isValid) {
       setFileList([]);
       setValidationResult(null);
@@ -395,7 +370,6 @@ export default function KeranjangListPage() {
       return;
     }
 
-    // ✅ Cek hasil validasi
     if (validationResult && !validationResult.isValid) {
       Modal.error({
         title: "Bukti Pembayaran Tidak Valid",
@@ -743,7 +717,6 @@ export default function KeranjangListPage() {
   </div>
 
   <div style={{ display: "flex", gap: 24 }}>
-    {/* Sisi Kiri - QR Code */}
     <div
       style={{
         flex: 1,
