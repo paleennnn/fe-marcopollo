@@ -37,11 +37,12 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const { Text, Title } = Typography;
+const { RangePicker } = DatePicker;
 
 export const FinancialReportsList = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [exportLoading, setExportLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   const { tableProps } = useTable({
     resource: "orders",
@@ -150,17 +151,17 @@ export const FinancialReportsList = () => {
   const processData = useMemo(() => {
     let _orders = Array.isArray(allOrders) ? [...allOrders] : [];
 
-    // Filter by month
-    if (selectedMonth) {
-      const startOfMonth = selectedMonth.startOf("month");
-      const endOfMonth = selectedMonth.endOf("month");
+    // Filter by date range
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      const startDate = dateRange[0].startOf("day");
+      const endDate = dateRange[1].endOf("day");
       
       _orders = _orders.filter((order: any) => {
         const orderDate = dayjs(order.tanggalOrder);
         return (
-          orderDate.isSame(startOfMonth, "day") ||
-          orderDate.isSame(endOfMonth, "day") ||
-          (orderDate.isAfter(startOfMonth) && orderDate.isBefore(endOfMonth))
+          orderDate.isSame(startDate, "day") ||
+          orderDate.isSame(endDate, "day") ||
+          (orderDate.isAfter(startDate) && orderDate.isBefore(endDate))
         );
       });
     }
@@ -193,20 +194,20 @@ export const FinancialReportsList = () => {
       totalProfit,
       totalTransactions,
     };
-  }, [allOrders, activeTab, selectedMonth]);
+  }, [allOrders, activeTab, dateRange]);
 
   const handleExport = async (type: "excel" | "pdf") => {
     setExportLoading(true);
     try {
       const dataToExport = processData.orders;
-      const monthText = selectedMonth
-        ? ` - ${selectedMonth.format("MMMM YYYY")}`
+      const dateText = dateRange && dateRange[0] && dateRange[1]
+        ? ` - ${dateRange[0].format("DD MMM YYYY")} hingga ${dateRange[1].format("DD MMM YYYY")}`
         : "";
       const title = `Laporan Keuangan - ${
         activeTab === "all"
           ? "Semua"
           : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
-      }${monthText}`;
+      }${dateText}`;
 
       if (type === "excel") {
         const workbook = new ExcelJS.Workbook();
@@ -298,11 +299,11 @@ export const FinancialReportsList = () => {
         // Summary info with smaller font
         doc.setFontSize(9);
         let summaryY = 26;
-        doc.text(`Kategori:${activeTab === "all" ? "Semua" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`, 14, summaryY);
+        doc.text(`Kategori: ${activeTab === "all" ? "Semua" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`, 14, summaryY);
         
-        if (selectedMonth) {
+        if (dateRange && dateRange[0] && dateRange[1]) {
           summaryY += 5;
-          doc.text(`Periode: ${selectedMonth.format("MMMM YYYY")}`, 14, summaryY);
+          doc.text(`Periode: ${dateRange[0].format("DD MMM YYYY")} - ${dateRange[1].format("DD MMM YYYY")}`, 14, summaryY);
         }
         
         summaryY += 5;
@@ -393,12 +394,11 @@ export const FinancialReportsList = () => {
       title="Laporan Keuangan"
       headerButtons={
         <Space>
-          <DatePicker
-            picker="month"
-            placeholder="Filter Bulan"
-            onChange={(date) => setSelectedMonth(date)}
-            value={selectedMonth}
-            style={{ width: 150 }}
+          <RangePicker
+            placeholder={["Start date", "End date"]}
+            onChange={(dates: [Dayjs | null, Dayjs | null] | null) => setDateRange(dates)}
+            value={dateRange}
+            style={{ width: 260 }}
             allowClear
           />
           <Button
