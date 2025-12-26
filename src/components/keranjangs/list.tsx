@@ -242,8 +242,6 @@ export default function KeranjangListPage() {
         },
       })
         .then(({ data: { text, confidence } }) => {
-          console.log("OCR Result:", text);
-          console.log("OCR Confidence:", confidence);
 
           const normalizedText = text.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
 
@@ -252,9 +250,6 @@ export default function KeranjangListPage() {
           );
 
           const hasNumbers = /\d{3,}/.test(normalizedText);
-
-          console.log("Found Keywords:", foundKeywords);
-          console.log("Has Numbers:", hasNumbers);
 
           const minKeywords = 1;
           const isValid =

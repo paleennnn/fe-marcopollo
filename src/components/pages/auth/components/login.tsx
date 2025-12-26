@@ -9,7 +9,7 @@ import {
   // LoginFormTypes,
   LoginPageProps,
 } from "@refinedev/core";
-import LogoImage from "@/public/logo/logo-marcopollo.png";
+import LogoImage from "@/public/logo/logo-marcopollo-hitam.png";
 // import { Title } from "@refinedev/antd";
 import { Card, Input, Button, Form, theme, Alert } from "antd";
 import Image from "next/image";
@@ -135,12 +135,12 @@ export const LoginPage: React.FC<LoginProps> = ({
       </div> */}
 
       <Card className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-        <div className="flex items-center gap-3 mb-12">
+        <div className="flex flex-col items-center gap-3 mb-12">
           <div className="h-14 w-14 relative">
-            {/* <Image src={LogoImage} alt="Logo" fill className="object-contain" /> */}
+            <Image src={LogoImage} alt="Logo" fill className="object-contain" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold">Marcopollo Group</h2>
+            <h2 className="text-xl font-semibold text-center">Marcopollo Group</h2>
           </div>
         </div>
 

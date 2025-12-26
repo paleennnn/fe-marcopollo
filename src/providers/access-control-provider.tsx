@@ -14,14 +14,13 @@ export const accessControlProvider: AccessControlProvider = {
     const parsed = JSON.parse(userStr);
     const user = parsed.user ? parsed.user : parsed;
 
-    // ✅ Resources yang bisa diakses semua user yang login
+    // Resources yang bisa diakses semua user yang login
     if (resource === "dashboard" || resource === "profile") {
       return { can: true };
     }
 
-    // 👑 Admin bisa akses semua kecuali customer-specific resources
+    // Admin bisa akses semua kecuali customer-specific resources
     if (isAdmin(user)) {
-      // Admin TIDAK bisa akses keranjang dan customer orders
       if (resource === "customer/keranjang" || resource === "customer/orders") {
         return { can: false };
       }

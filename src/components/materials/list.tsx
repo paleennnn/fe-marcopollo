@@ -99,10 +99,6 @@ export const MaterialList = () => {
 
   const materials = tableProps?.dataSource || [];
 
-  // Debug untuk melihat identity
-  console.log("Identity:", identity);
-
-  // Gunakan approach yang sama seperti access control provider
   const getUserRole = () => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
@@ -117,9 +113,6 @@ export const MaterialList = () => {
   };
 
   const isAdmin = getUserRole() === "admin";
-
-  console.log("User Role:", getUserRole());
-  console.log("Is Admin:", isAdmin);
 
   return (
     <CanAccess
@@ -140,7 +133,6 @@ export const MaterialList = () => {
       >
         <Spin spinning={!!tableProps?.loading}>
           {isAdmin ? (
-            // Tampilan Tabel untuk Admin
             <Table
               dataSource={materials}
               rowKey="id"
@@ -266,7 +258,6 @@ export const MaterialList = () => {
               />
             </Table>
           ) : (
-            // Tampilan Card untuk Customer
             <Row gutter={[16, 16]}>
               {materials.map((material: BaseRecord) => (
                 <Col xs={24} sm={12} md={8} lg={6} key={material.id}>

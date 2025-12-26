@@ -43,7 +43,6 @@ export const authProviderClient: AuthProvider = {
 
       localStorage.setItem("token", actualToken);
 
-      // Simpan HANYA data pengguna (nested di user property)
       const userDataToStore = data.user || data;
       localStorage.setItem("user", JSON.stringify(userDataToStore));
 
